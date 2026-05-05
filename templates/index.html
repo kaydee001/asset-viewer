@@ -10,6 +10,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <!-- GLTFLoader for loading glb files -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <script>
         const width = window.innerWidth;
         const height = window.innerHeight;
@@ -17,18 +18,35 @@
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(50, width/height, 0.1, 1000);        
         const renderer = new THREE.WebGLRenderer();
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
         
         renderer.setSize(width, height);
         document.body.appendChild(renderer.domElement);
         
         camera.position.z = 5;
 
-        const light = new THREE.AmbientLight(0xffffff);
-        scene.add(light);
+        // const light = new THREE.AmbientLight(0xffffff);
+        // scene.add(light);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+        directionalLight.position.set(5,5,5);
+        scene.add(directionalLight);
+        
 
         const loader = new THREE.GLTFLoader();
         loader.load("/models/test.glb", function(gltf){
             scene.add(gltf.scene);
+            let vertices = 0;
+            let faces = 0;
+            scene.traverse(function(obj){
+                if(obj.type == "Mesh"){
+                    vertices += obj.geometry.attributes.position.count;
+                    if(obj.geometry.index){
+                        faces += obj.geometry.index.count / 3;
+                    }
+                }
+                document.getElementById("stats-panel").innerHTML = `vertices : ${vertices}<br>faces : ${faces}`
+            })
         }, undefined, function(error){
             console.error(error);
         });
@@ -36,9 +54,11 @@
         function animate(){
             requestAnimationFrame(animate);
             renderer.render(scene, camera);
+            controls.update();
         }
         animate();
          
     </script>
+    <div id="stats-panel" style="position: fixed; top: 10px; left: 10px; color: white;">loading</div>
 </body>
 </html>
