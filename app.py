@@ -11,3 +11,8 @@ def index():
 @app.route("/models/<path:filename>")
 def serve_model(filename):
     return send_from_directory("models", filename)
+
+
+@app.route("/hdri/<path:filename>")
+def serve_hdri(filename):
+    return send_from_directory("hdri", filename)

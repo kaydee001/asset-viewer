@@ -219,3 +219,6 @@ __marimo__/
 
 #ignore info
 info.txt
+
+#hdris
+*hdri

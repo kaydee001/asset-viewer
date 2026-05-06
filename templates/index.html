@@ -4,6 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">  
     <title>Asset Viewer</title>
+    <style>
+        body 
+        {
+            background: #e8e8e8;
+            background: radial-gradient(circle,rgba(232, 232, 232, 1) 0%, rgba(96, 96, 96, 1) 100%);
+        }
+    </style>
 </head>
 <body>
     <!-- Three.js core -->
@@ -11,13 +18,26 @@
     <!-- GLTFLoader for loading glb files -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/RGBELoader.js"></script>
     <script>
         const width = window.innerWidth;
         const height = window.innerHeight;
 
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(50, width/height, 0.1, 1000);        
-        const renderer = new THREE.WebGLRenderer();
+        const renderer = new THREE.WebGLRenderer({alpha: true});
+
+        const new_RGBELoader = new THREE.RGBELoader();
+
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1;
+        renderer.outputEncoding = THREE.sRGBEncoding;
+
+        new_RGBELoader.load("/hdri/studio_small_08_4k.hdr", function(texture){
+            texture.mapping = THREE.EquirectangularReflectionMapping;
+            scene.environment = texture;
+        })
+
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
 
         controls.zoomSpeed = 1.0;
@@ -26,7 +46,11 @@
         controls.autoRotateSpeed = 5.0;
 
         controls.minDistance = 5;
-        controls.maxDistance = 10;
+        controls.maxDistance = 8;
+
+        controls.maxPolarAngle = Math.PI/2;
+
+        controls.enablePan = false;
         
         renderer.setSize(width, height);
         // renderer.domElement = canvas element
@@ -34,20 +58,20 @@
         
         camera.position.z = 5;
 
-        const ambLight = new THREE.AmbientLight(0x555555);
-        scene.add(ambLight);
+        // const ambLight = new THREE.AmbientLight(0x555555);
+        // scene.add(ambLight);
 
-        const directionalLight1 = new THREE.DirectionalLight(0xffffff, 1);
-        directionalLight1.position.set(5,-3,3);
-        scene.add(directionalLight1);
+        // const directionalLight1 = new THREE.DirectionalLight(0xffffff, 1);
+        // directionalLight1.position.set(5,-3,3);
+        // scene.add(directionalLight1);
 
-        const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.5);
-        directionalLight2.position.set(-4,-0.7,3);
-        scene.add(directionalLight2);
+        // const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.5);
+        // directionalLight2.position.set(-4,-0.7,3);
+        // scene.add(directionalLight2);
 
-        const directionalLight3 = new THREE.DirectionalLight(0xffffff, 0.3);
-        directionalLight3.position.set(0.7,4,5);
-        scene.add(directionalLight3);
+        // const directionalLight3 = new THREE.DirectionalLight(0xffffff, 0.3);
+        // directionalLight3.position.set(0.7,4,5);
+        // scene.add(directionalLight3);
         
 
         const loader = new THREE.GLTFLoader();
