@@ -19,21 +19,39 @@
         const camera = new THREE.PerspectiveCamera(50, width/height, 0.1, 1000);        
         const renderer = new THREE.WebGLRenderer();
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+        controls.zoomSpeed = 1.0;
+        // round table anim
+        controls.autoRotate = true;
+        controls.autoRotateSpeed = 5.0;
+
+        controls.minDistance = 5;
+        controls.maxDistance = 10;
         
         renderer.setSize(width, height);
+        // renderer.domElement = canvas element
         document.body.appendChild(renderer.domElement);
         
         camera.position.z = 5;
 
-        // const light = new THREE.AmbientLight(0xffffff);
-        // scene.add(light);
+        const ambLight = new THREE.AmbientLight(0x555555);
+        scene.add(ambLight);
 
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-        directionalLight.position.set(5,5,5);
-        scene.add(directionalLight);
+        const directionalLight1 = new THREE.DirectionalLight(0xffffff, 1);
+        directionalLight1.position.set(5,-3,3);
+        scene.add(directionalLight1);
+
+        const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.5);
+        directionalLight2.position.set(-4,-0.7,3);
+        scene.add(directionalLight2);
+
+        const directionalLight3 = new THREE.DirectionalLight(0xffffff, 0.3);
+        directionalLight3.position.set(0.7,4,5);
+        scene.add(directionalLight3);
         
 
         const loader = new THREE.GLTFLoader();
+        // url, onLoad, onProgress, onError
         loader.load("/models/test.glb", function(gltf){
             scene.add(gltf.scene);
             let vertices = 0;
@@ -45,8 +63,8 @@
                         faces += obj.geometry.index.count / 3;
                     }
                 }
-                document.getElementById("stats-panel").innerHTML = `vertices : ${vertices}<br>faces : ${faces}`
             })
+            document.getElementById("stats-panel").innerHTML = `vertices : ${vertices}<br>faces : ${faces}`;
         }, undefined, function(error){
             console.error(error);
         });
