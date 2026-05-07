@@ -77,7 +77,11 @@
         const geometry = new THREE.BoxGeometry(1, 1, 1);
         const material = new THREE.MeshStandardMaterial({color: 0x505050, metalness: 0.5, roughness: 0.5});
         const defaultCube = new THREE.Mesh(geometry, material);
+
+        let currentObject;
+
         scene.add(defaultCube);
+        currentObject = defaultCube;
 
         const dropZone = document.body;
         dropZone.addEventListener("dragover", (event)=>{
@@ -85,8 +89,12 @@
             event.dataTransfer.dropEffect = "copy";
             dropZone.classList.add("hover");
         })
+        
         dropZone.addEventListener("drop", (event)=>{
             event.preventDefault();
+
+            scene.remove(currentObject);
+
             const file = event.dataTransfer.files[0];
             const url = URL.createObjectURL(file);
 
@@ -104,6 +112,10 @@
                     }
                 })
                 document.getElementById("stats-panel").innerHTML = `vertices : ${vertices}<br>faces : ${faces}`;
+
+                scene.remove(defaultCube);
+                currentObject = gltf.scene;
+
             }, undefined, function(error){
                 console.error(error);
             });
