@@ -12,17 +12,12 @@
         }
     </style>
 </head>
-<body>
-    <!-- Three.js core -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <!-- GLTFLoader for loading glb files -->
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/RGBELoader.js"></script>
-    
+<body>    
     <div id="stats-panel" style="position: fixed; top: 10px; left: 10px; color: white;">loading</div>
     <div id="drop-zone"></div>
+    <button id="auto-rotate-btn" style="position: fixed; top: 10px; right: 10px;">Auto Rotate</button>
+    <button id="wireframe-btn" style="position: fixed; top: 50px; right: 10px;">Toggle Wireframe</button>
 
-    <script src="{{ url_for('static', filename='viewer.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='viewer.js') }}"></script>
 </body>
 </html>
