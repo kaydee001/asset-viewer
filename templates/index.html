@@ -4,20 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">  
     <title>Asset Viewer</title>
-    <style>
-        body 
-        {
-            background: #e8e8e8;
-            background: radial-gradient(circle,rgba(232, 232, 232, 1) 0%, rgba(96, 96, 96, 1) 100%);
-        }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<body>    
-    <div id="stats-panel" style="position: fixed; top: 10px; left: 10px; color: white;">loading</div>
+<body>
     <div id="drop-zone"></div>
-    <button id="auto-rotate-btn" style="position: fixed; top: 10px; right: 10px;">Auto Rotate</button>
-    <button id="wireframe-btn" style="position: fixed; top: 50px; right: 10px;">Toggle Wireframe</button>
-    <button id="grid-btn" style="position: fixed; top: 90px; right: 10px;">Toggle Grid</button>
+    <div id="left-panel">
+        <div id="stats-panel">drop a .glb file to begin</div>
+    </div>
+    <div id="right-panel">
+        <button id="auto-rotate-btn">auto rotate</button>
+        <button id="pan-btn">pan</button>
+        <button id="wireframe-btn">wireframe</button>
+        <button id="grid-btn">grid</button>
+        <button id="reset-btn">reset</button>
+    </div>
 
     <script type="module" src="{{ url_for('static', filename='viewer.js') }}"></script>
 </body>
