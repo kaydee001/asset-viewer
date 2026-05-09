@@ -48,13 +48,15 @@ controls.enablePan = false;
 controls.minPolarAngle = 0;
 controls.maxPolarAngle = Math.PI/2;
 
-renderer.setSize(width, height);
 // renderer.domElement -> canvas element
+renderer.setSize(width, height);
 document.body.appendChild(renderer.domElement);
 
+// pan around object
 const panBtn = document.getElementById("pan-btn");
 panBtn.addEventListener("click", ()=>{
     controls.enablePan = !controls.enablePan;
+    panBtn.textContent = controls.enablePan ? `- pan [on]` : `- pan [off]`;
 });
 
 let modelLoaded = false;
@@ -110,6 +112,7 @@ controls.autoRotate = false;
 const rotateBtn = document.getElementById("auto-rotate-btn");
 rotateBtn.addEventListener("click", ()=>{
     controls.autoRotate = !controls.autoRotate;
+    rotateBtn.textContent = controls.autoRotate ? `- auto rotate [on]` : `- auto rotate [off]`;
 })
 controls.autoRotateSpeed = 5.0;
 
@@ -119,6 +122,7 @@ wireframeBtn.addEventListener("click", () => {
     scene.traverse(function(obj){
         if(obj.type == "Mesh"){
             obj.material.wireframe = !obj.material.wireframe;
+            wireframeBtn.textContent = obj.material.wireframe ? `- wireframe [on]` : `- wireframe [off]`;
         }
     })
 });
@@ -127,6 +131,7 @@ wireframeBtn.addEventListener("click", () => {
 const gridBtn = document.getElementById("grid-btn");
 gridBtn.addEventListener("click", ()=>{
     gridHelper.visible = !gridHelper.visible;
+    gridBtn.textContent = gridHelper.visible ? `- grid [on]` : `- grid [off]`;
 });
 
 // reset back to default
