@@ -6,18 +6,30 @@
     <title>Asset Viewer</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<body>
+<body class="light">
     <div id="drop-zone"></div>
+
     <div id="left-panel">
         <div id="stats-panel">drop a .glb file to begin</div>
     </div>
+
     <div id="right-panel">
-        <button id="auto-rotate-btn"> - auto rotate [off]</button>
-        <button id="pan-btn"> - pan [off]</button>
-        <button id="wireframe-btn"> - wireframe [off]</button>
-        <button id="grid-btn"> - grid [on]</button>
-        <button id="reset-btn">reset</button>
-    </div>
+        <div class="panel-section">
+            <div class="section-title">camera</div>
+            <button id="auto-rotate-btn"> - auto rotate [off]</button>
+            <button id="pan-btn"> - pan [off]</button>
+        </div>
+
+        <div class="panel-section">
+            <div class="section-title">viewport</div>        
+            <button id="wireframe-btn"> - wireframe [off]</button>
+            <button id="grid-btn"> - grid [on]</button>
+            <button id="theme-btn"> - theme [light]</button>
+        </div>
+        <div class="panel-section">
+            <button id="reset-btn">reset</button>
+        </div>
+    </div>    
 
     <script type="module" src="{{ url_for('static', filename='viewer.js') }}"></script>
 </body>

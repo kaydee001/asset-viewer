@@ -134,12 +134,26 @@ gridBtn.addEventListener("click", ()=>{
     gridBtn.textContent = gridHelper.visible ? `- grid [on]` : `- grid [off]`;
 });
 
+const themeBtn = document.getElementById("theme-btn");
+themeBtn.addEventListener("click", ()=>{
+    document.body.classList.toggle("dark");
+    document.body.classList.toggle("light");
+    themeBtn.textContent = document.body.classList.contains("dark") ? `- theme [dark]` : `- theme [light]`;
+});
+
 // reset back to default
 const resetBtn = document.getElementById("reset-btn");
 resetBtn.addEventListener("click", ()=>{
     controls.autoRotate = false;
+
     gridHelper.visible = true;
+    
     controls.enablePan = false;
+
+    document.body.classList.remove("dark");
+    themeBtn.textContent = `- theme [light]`;
+    document.body.classList.add("light");
+
     scene.traverse(function(obj){
         if(obj.type == "Mesh"){
             obj.material.wireframe = false;
@@ -200,6 +214,7 @@ dropZone.addEventListener("drop", (event)=>{
             obj.castShadow = true;
             obj.receiveShadow = true;
         })
+        const fileSize = file.size/1024/1024;
         // display mesh stats
         document.getElementById("stats-panel").innerHTML = `
         <strong>name</strong> : ${fileName}<br>
@@ -207,6 +222,7 @@ dropZone.addEventListener("drop", (event)=>{
         <strong>vertices</strong> : ${vertices}<br>
         <strong>faces</strong> : ${faces}<br>
         <strong>triangles</strong> : ${triangles}<br>
+        <strong>file size</strong> : ${fileSize.toFixed(2)} mb<br>
         `;
 
         // remove current object
