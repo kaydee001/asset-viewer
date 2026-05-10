@@ -202,6 +202,7 @@ dropZone.addEventListener("dragover", (event)=>{
     event.preventDefault();
     event.dataTransfer.dropEffect = "copy";
     dropZone.classList.add("hover");
+    document.getElementById("overlay").style.display = "flex";
 })
 
 dropZone.addEventListener("drop", (event)=>{
@@ -257,6 +258,7 @@ dropZone.addEventListener("drop", (event)=>{
     }, undefined, function(error){
         console.error(error);
     });
+    document.getElementById("overlay").style.display = "none";
 })
 
 function animate(){
