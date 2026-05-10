@@ -23,10 +23,35 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 
-new_RGBELoader.load("/hdri/studio_small_08_4k.hdr", function(texture){
+new_RGBELoader.load("/hdri/hdri_1.hdr", function(texture){
     texture.mapping = THREE.EquirectangularReflectionMapping;
     scene.environment = texture;    
 })
+// select hdri
+const hdriSelect = document.getElementById("hdri-select");
+hdriSelect.addEventListener("change", (event)=>{
+    const updatedHDRI = event.target.value;
+    new_RGBELoader.load(`/hdri/${updatedHDRI}`, function(texture){
+        texture.mapping = THREE.EquirectangularReflectionMapping;
+        scene.environment = texture;    
+    })
+    document.getElementById("hdri-name").textContent = "";
+});
+// upload hdri
+const hdriUpload = document.getElementById("hdri-upload");
+const uploadHdrBtn = document.getElementById("upload-hdri-btn");
+uploadHdrBtn.addEventListener("click", ()=>{
+    hdriUpload.click();
+});
+hdriUpload.addEventListener("change", (event)=>{
+    const file = event.target.files[0];
+    const url = URL.createObjectURL(file);
+    new_RGBELoader.load(url, function(texture){
+        texture.mapping = THREE.EquirectangularReflectionMapping;
+        scene.environment = texture;    
+    })
+    document.getElementById("hdri-name").textContent = file.name;
+});
 
 // directional light
 const light1 = new THREE.DirectionalLight(0x333333, 0.5);
@@ -147,7 +172,7 @@ resetBtn.addEventListener("click", ()=>{
     controls.autoRotate = false;
 
     gridHelper.visible = true;
-    
+
     controls.enablePan = false;
 
     document.body.classList.remove("dark");
