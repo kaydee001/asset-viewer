@@ -88,6 +88,13 @@ bottomLockBtn.addEventListener("click", ()=>{
 renderer.setSize(width, height);
 document.body.appendChild(renderer.domElement);
 
+// fix reloading after window resizing 
+window.addEventListener("resize", () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
 // pan around object
 const panBtn = document.getElementById("pan-btn");
 panBtn.addEventListener("click", ()=>{
