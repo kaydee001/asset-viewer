@@ -222,3 +222,10 @@ info.txt
 
 #hdris
 *hdri
+
+#meshes
+*gltf
+*glb
+*fbx
+*obj
+*mtl

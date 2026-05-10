@@ -1,7 +1,10 @@
 import * as THREE from 'https://esm.sh/three@0.150.0';
 import { GLTFLoader } from 'https://esm.sh/three@0.150.0/examples/jsm/loaders/GLTFLoader.js';
+import { FBXLoader } from 'https://esm.sh/three@0.150.0/examples/jsm/loaders/FBXLoader.js';
+import { OBJLoader } from 'https://esm.sh/three@0.150.0/examples/jsm/loaders/OBJLoader.js';
 import { OrbitControls } from 'https://esm.sh/three@0.150.0/examples/jsm/controls/OrbitControls.js';
 import { RGBELoader } from 'https://esm.sh/three@0.150.0/examples/jsm/loaders/RGBELoader.js';
+import { mergeVertices } from 'https://esm.sh/three@0.150.0/examples/jsm/utils/BufferGeometryUtils.js';
 
 // canvas size
 const width = window.innerWidth;
@@ -73,6 +76,14 @@ controls.enablePan = false;
 controls.minPolarAngle = 0;
 controls.maxPolarAngle = Math.PI/2;
 
+// bottom lock toggle
+const bottomLockBtn = document.getElementById("bottom-lock-btn");
+bottomLockBtn.addEventListener("click", ()=>{
+    const isLocked = controls.maxPolarAngle === Math.PI/2;  
+    controls.maxPolarAngle = isLocked ? Math.PI : Math.PI/2;
+    bottomLockBtn.textContent = isLocked ? `- bottom lock [off]` : `- bottom lock [on]`;
+});
+
 // renderer.domElement -> canvas element
 renderer.setSize(width, height);
 document.body.appendChild(renderer.domElement);
@@ -106,11 +117,11 @@ function frameCamera(object){
     const size = box.getSize(new THREE.Vector3());
     const maxDim = Math.max(size.x, size.y, size.z);
 
-    camera.position.set(center.x, center.y+maxDim, center.z+maxDim*2);
+    camera.position.set(center.x, center.y+maxDim*1.5, center.z+maxDim*3);
     controls.target.set(center.x, center.y, center.z);
 
     controls.minDistance = maxDim * 0.5;
-    controls.maxDistance = maxDim * 5;
+    controls.maxDistance = maxDim * 10;
 
     controls.update();
 }
@@ -120,6 +131,7 @@ const size = 20;
 const divisions = 50;
 const gridHelper = new THREE.GridHelper(size, divisions, 0x000099);
 scene.add(gridHelper);
+gridHelper.position.y = -0.01;
     
 // ground plane
 // const planeGeometry = new THREE.PlaneGeometry(20, 20);
@@ -175,6 +187,9 @@ resetBtn.addEventListener("click", ()=>{
 
     controls.enablePan = false;
 
+    controls.maxPolarAngle = Math.PI/2;
+    bottomLockBtn.textContent = `- bottom lock [on]`;
+
     document.body.classList.remove("dark");
     themeBtn.textContent = `- theme [light]`;
     document.body.classList.add("light");
@@ -205,42 +220,76 @@ dropZone.addEventListener("dragover", (event)=>{
     document.getElementById("overlay").style.display = "flex";
 })
 
-dropZone.addEventListener("drop", (event)=>{
-    event.preventDefault();
-
-    scene.remove(currentObject);
-
-    const file = event.dataTransfer.files[0];
-    const fileName = file.name;
+function loadModel(url, file, loader)
+{
     let objCount = 0;
-    const url = URL.createObjectURL(file);
-
-    // url, onLoad, onProgress, onError
-    loader.load(url, function(gltf){
-        scene.add(gltf.scene);
+    loader.load(url, function(result){
+        const object = result.scene !== undefined ? result.scene : result;
+        scene.add(object);
         modelLoaded = true;
+        currentObject = object;
 
-        frameCamera(gltf.scene);
+        // normalize fbx scale
+        const box = new THREE.Box3().setFromObject(object);
+        const size = box.getSize(new THREE.Vector3());
+        const maxDim = Math.max(size.x, size.y, size.z);
+        if(maxDim > 100)
+        {
+            object.scale.setScalar(1 / (maxDim/10));
+        }
+
+        frameCamera(object);
 
         // calculate stats
+        const fileName = file.name;
+
         let vertices = 0;
         let faces = 0;
         let triangles = 0;
+
         scene.traverse(function(obj){
             if(obj.type == "Mesh"){
-                vertices += obj.geometry.attributes.position.count;
+                const merged = mergeVertices(obj.geometry);
+                vertices += merged.attributes.position.count;
+
                 if(obj.geometry.index){
-                    faces += obj.geometry.index.count / 3;
-                    triangles += obj.geometry.index.count / 3;
+                    const tris = obj.geometry.index.count / 3;
+                    triangles += tris;
+                    faces +=  tris;
                 } else {
-                    triangles += obj.geometry.attributes.position.count / 3;
+                    const tris = obj.geometry.attributes.position.count / 3;
+                    triangles += tris;
+                    faces +=  tris;
                 }
+                
                 objCount += 1;
             }
             obj.castShadow = true;
             obj.receiveShadow = true;
         })
+
+        // converting phong material to standard material
+        object.traverse(function(obj){
+            if(obj.isMesh && obj.material)
+            {
+                if(obj.material.isMeshPhongMaterial)
+                {
+                    obj.material = new THREE.MeshStandardMaterial({
+                        color: obj.material.color,
+                        roughness: obj.material.roughness !== undefined ? obj.material.roughness : 0.5,
+                        metalness: obj.material.metalness !== undefined ? obj.material.metalness : 1,
+                        map: obj.material.map || null,
+                        emissive: obj.material.emissive || new THREE.Color(0x000000),
+                        emissiveIntensity: obj.material.emissiveIntensity !== undefined ? obj.material.emissiveIntensity : 1,
+                        emissiveMap: obj.material.emissiveMap || null
+                    });
+                }
+            }
+        })
+
+        // file size
         const fileSize = file.size/1024/1024;
+
         // display mesh stats
         document.getElementById("stats-panel").innerHTML = `
         <strong>name</strong> : ${fileName}<br>
@@ -250,20 +299,40 @@ dropZone.addEventListener("drop", (event)=>{
         <strong>triangles</strong> : ${triangles}<br>
         <strong>file size</strong> : ${fileSize.toFixed(2)} mb<br>
         `;
-
-        // remove current object
-        scene.remove(defaultCube);
-        currentObject = gltf.scene;
-
     }, undefined, function(error){
         console.error(error);
     });
+}
+
+dropZone.addEventListener("drop", (event)=>{
+    event.preventDefault();
+
+    // remove current object
+    scene.remove(currentObject);
+
+    const file = event.dataTransfer.files[0];
+    const fileName = file.name;
+    const fileExt = fileName.split('.').pop().toLowerCase();   
+    const url = URL.createObjectURL(file);
+
+    if(fileExt == "gltf" || fileExt == "glb")
+    {
+        loadModel(url, file, new GLTFLoader());
+    }
+    else if(fileExt == "fbx")
+    {
+        loadModel(url, file, new FBXLoader());
+    }   
+    else if(fileExt == "obj")
+    {
+        loadModel(url, file, new OBJLoader());
+    }
+
     document.getElementById("overlay").style.display = "none";
 })
 
 function animate(){
     requestAnimationFrame(animate);
-    controls.target.clamp(new THREE.Vector3(-5, -5, -5), new THREE.Vector3(5, 5, 5));
     renderer.render(scene, camera);
     controls.update();
 }
