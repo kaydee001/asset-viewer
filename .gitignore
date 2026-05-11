@@ -229,3 +229,11 @@ info.txt
 *fbx
 *obj
 *mtl
+
+#builds
+dist/
+build/
+*.spec
+
+#backup-folder
+backup

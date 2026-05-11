@@ -6,10 +6,12 @@ import {controls} from './controls.js';
 export let modelLoaded = false;
 export let currentObject = null;
 
+// fix live binding #1 
 export function setCurrentObject(obj){  
     currentObject = obj;
 }
 
+// fix live binding #2 
 export function setModelLoaded(val){
     modelLoaded = val;
 }
