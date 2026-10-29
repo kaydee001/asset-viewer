@@ -13,7 +13,7 @@ function playSelected(){
     if(action) action.stop();
     action = mixer.clipAction(clips[select.selectedIndex]);
     action.play();
-    playBtn.textContent = "- pause";
+    playBtn.textContent = "Pause";
 }
 
 export function setAnimations(object, newClips){
@@ -36,7 +36,7 @@ select.addEventListener("change", () => { if(mixer) playSelected(); });
 playBtn.addEventListener("click", () => {
     if(!action) return;
     action.paused = !action.paused;
-    playBtn.textContent = action.paused ? "- play" : "- pause";
+    playBtn.textContent = action.paused ? "Play" : "Pause";
 });
 
 export function updateAnimation(){

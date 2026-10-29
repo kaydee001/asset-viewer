@@ -173,18 +173,28 @@ export async function loadModel(file, allFiles){
     // display mesh stats
     const rows = [
         ["name", file.name],
-        ["no of objects", objCount.toLocaleString()],
+        ["objects", objCount.toLocaleString()],
         ["vertices", vertices.toLocaleString()],
         ["faces", triangles.toLocaleString()],
         ["triangles", triangles.toLocaleString()],
-        ["dimensions", `${rawSize.x.toFixed(2)} x ${rawSize.y.toFixed(2)} x ${rawSize.z.toFixed(2)}`],
-        ["file size", `${(file.size/1024/1024).toFixed(2)} mb`]
+        ["size", `${rawSize.x.toFixed(2)} x ${rawSize.y.toFixed(2)} x ${rawSize.z.toFixed(2)}`],
+        ["file size", `${(file.size/1024/1024).toFixed(2)} MB`]
     ];
     const statsPanel = document.getElementById("stats-panel");
     statsPanel.textContent = "";
-    for(const [label, value] of rows){
-        const strong = document.createElement("strong");
-        strong.textContent = label;
-        statsPanel.append(strong, ` : ${value}`, document.createElement("br"));
+    const title = document.createElement("div");
+    title.className = "stat-name";
+    title.textContent = file.name;
+    statsPanel.append(title);
+    for(const [label, value] of rows.slice(1)){
+        const row = document.createElement("div");
+        row.className = "stat-row";
+        const key = document.createElement("span");
+        key.textContent = label;
+        const val = document.createElement("span");
+        val.textContent = value;
+        row.append(key, val);
+        statsPanel.append(row);
     }
+    document.body.classList.add("has-model");
 }

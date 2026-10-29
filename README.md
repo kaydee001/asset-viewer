@@ -15,7 +15,7 @@ Drop in a GLB, FBX, or OBJ and inspect it — no uploads, no accounts, no nonsen
 - HDRI lighting with built-in presets + custom upload
 - orbit controls with auto-rotate, pan, bottom lock
 - wireframe toggle, grid toggle, light/dark theme, png screenshot
-- shortcuts: `W` wireframe, `G` grid, `R` auto rotate, `F` reset view, `S` screenshot, `O` open file, `H` hide panels
+- shortcuts: `W` wireframe, `G` grid, `R` auto rotate, `F` reset view, `S` screenshot, `O` open file, `T` theme, `P` pan, `H` hide interface
 - works offline — three.js is bundled, no CDN
 - PyQt5 desktop app — runs as a standalone exe
 

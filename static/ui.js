@@ -3,9 +3,10 @@ import { controls } from './controls.js';
 import { loadModel, frameCamera, modelLoaded, currentObject } from './loader.js';
 import { showToast, hideToast } from './toast.js';
 
-// keeps button text in sync with state
-function setLabel(btn, name, isOn, onText = "on", offText = "off"){
-    btn.textContent = `- ${name} [${isOn ? onText : offText}]`;
+// toolbar buttons show their on/off state as a highlight
+function setLabel(btn, name, isOn){
+    btn.classList.toggle("active", isOn);
+    btn.setAttribute("aria-pressed", isOn);
 }
 
 // select hdri
@@ -79,7 +80,7 @@ const themeBtn = document.getElementById("theme-btn");
 themeBtn.addEventListener("click", ()=>{
     document.body.classList.toggle("dark");
     document.body.classList.toggle("light");
-    setLabel(themeBtn, "theme", document.body.classList.contains("dark"), "dark", "light");
+    setLabel(themeBtn, "theme", document.body.classList.contains("dark"));
 });
 
 // save the current view as a png
@@ -111,7 +112,7 @@ resetBtn.addEventListener("click", ()=>{
 
     document.body.classList.remove("dark");
     document.body.classList.add("light");
-    setLabel(themeBtn, "theme", false, "dark", "light");
+    setLabel(themeBtn, "theme", false);
 
     setWireframe(false);
     if (modelLoaded)
@@ -133,20 +134,30 @@ const shortcuts = {
     r: rotateBtn,
     f: resetBtn,
     s: document.getElementById("screenshot-btn"),
-    o: document.getElementById("open-btn")
+    o: document.getElementById("open-btn"),
+    t: themeBtn,
+    p: panBtn,
+    h: document.getElementById("hide-btn")
 };
-for(const [key, btn] of Object.entries(shortcuts)){
-    btn.title = `shortcut: ${key.toUpperCase()}`;
-}
+
+// tooltips: label plus its shortcut key
+const keyOf = new Map(Object.entries(shortcuts).map(([key, btn]) => [btn, key.toUpperCase()]));
+document.querySelectorAll(".tool").forEach(btn => {
+    const key = keyOf.get(btn);
+    btn.dataset.tip = key ? `${btn.dataset.label} (${key})` : btn.dataset.label;
+});
+
+document.getElementById("hide-btn").addEventListener("click", ()=>{
+    document.body.classList.toggle("ui-hidden");
+    if(document.body.classList.contains("ui-hidden")){
+        showToast("interface hidden, press H to show it");
+    }
+});
+
 window.addEventListener("keydown", (event)=>{
     if(event.ctrlKey || event.metaKey || event.altKey) return;
     if(event.target.tagName === "SELECT" || event.target.tagName === "INPUT") return;
-    const key = event.key.toLowerCase();
-    if(key === "h"){
-        document.body.classList.toggle("ui-hidden");
-        return;
-    }
-    const btn = shortcuts[key];
+    const btn = shortcuts[event.key.toLowerCase()];
     if(btn) btn.click();
 });
 

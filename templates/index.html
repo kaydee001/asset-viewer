@@ -2,69 +2,86 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">  
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Asset Viewer</title>
+    <link rel="icon" href="data:,">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body class="light">
-    <div id="drop-zone"></div>
-    
     <div id="overlay" style="display: none;">
-        <p>drag and drop a 3D file</p>
+        <p>Drop to open</p>
     </div>
 
-    <div id="left-panel">
-        <div id="stats-panel">drop a model or folder to begin<br><span class="hint">glb, gltf, fbx, obj &middot; H hides the panels</span></div>
+    <div id="hint" class="card">
+        <strong>Drop a 3D model or folder</strong>
+        <span>glb &middot; gltf &middot; fbx &middot; obj</span>
+    </div>
+
+    <div id="left-panel" class="card">
+        <div id="stats-panel"></div>
         <div id="asset-list"></div>
+    </div>
+
+    <div id="right-panel" class="card">
+        <div class="panel-section">
+            <div class="section-title">Lighting</div>
+            <select id="hdri-select">
+                <option value="hdri_1.hdr">Studio small 08</option>
+                <option value="hdri_2.hdr">Citrus orchid road</option>
+                <option value="hdri_3.hdr">Meadow 02</option>
+                <option value="hdri_4.hdr">Sunny rose garden</option>
+                <option value="hdri_5.hdr">Kloofendal 48d</option>
+            </select>
+            <div id="hdri-name"></div>
+            <button id="upload-hdri-btn" class="text-btn">Upload HDRI</button>
+            <input type="file" id="hdri-upload" accept=".hdr" style="display: none;">
+        </div>
+
+        <div class="panel-section" id="animation-section" style="display: none;">
+            <div class="section-title">Animation</div>
+            <select id="animation-select"></select>
+            <button id="animation-btn" class="text-btn">Pause</button>
+        </div>
     </div>
 
     <div id="toast" style="display: none;"></div>
 
-    <div id="right-panel">
-        <div class="panel-section">
-            <button id="open-btn">open file</button>
-            <input type="file" id="open-input" multiple style="display: none;">
-        </div>
-
-        <div class="panel-section">
-            <div class="section-title">camera</div>
-            <button id="auto-rotate-btn"> - auto rotate [off]</button>
-            <button id="pan-btn"> - pan [off]</button>
-            <button id="bottom-lock-btn"> - bottom lock [on]</button>
-        </div>
-
-        <div class="panel-section">
-            <div class="section-title">viewport</div>        
-            <button id="wireframe-btn"> - wireframe [off]</button>
-            <button id="grid-btn"> - grid [on]</button>
-            <button id="theme-btn"> - theme [light]</button>
-            <button id="screenshot-btn"> - screenshot</button>
-        </div>
-
-        <div class="panel-section" id="animation-section" style="display: none;">
-            <div class="section-title">animation</div>
-            <select id="animation-select"></select>
-            <button id="animation-btn"> - pause</button>
-        </div>
-
-        <div class="panel-section">
-            <div class="section-title">lighting</div>
-            <select id="hdri-select">
-                <option value="hdri_1.hdr">studio small 08</option>
-                <option value="hdri_2.hdr">citrus orchid road</option>
-                <option value="hdri_3.hdr">meadow 02</option>
-                <option value="hdri_4.hdr">sunny rose garden</option>
-                <option value="hdri_5.hdr">kloofendal 48d</option>
-            </select>
-            <div id="hdri-name"></div>
-            <button id="upload-hdri-btn">upload hdri</button>
-            <input type="file" id="hdri-upload" accept=".hdr" style="display: none;">
-        </div>
-
-        <div class="panel-section">
-            <button id="reset-btn">reset view</button>
-        </div>
-    </div>    
+    <div id="toolbar" class="card">
+        <button id="open-btn" class="tool" data-label="Open file">
+            <svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+        </button>
+        <button id="reset-btn" class="tool" data-label="Reset view">
+            <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+        </button>
+        <span class="divider"></span>
+        <button id="auto-rotate-btn" class="tool" data-label="Auto rotate">
+            <svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 0 0-15-6.7L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 15 6.7L21 16"/><path d="M16 16h5v5"/></svg>
+        </button>
+        <button id="pan-btn" class="tool" data-label="Pan">
+            <svg viewBox="0 0 24 24"><path d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M2 12h20M12 2v20"/></svg>
+        </button>
+        <button id="bottom-lock-btn" class="tool active" data-label="Bottom lock">
+            <svg viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+        </button>
+        <span class="divider"></span>
+        <button id="wireframe-btn" class="tool" data-label="Wireframe">
+            <svg viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg>
+        </button>
+        <button id="grid-btn" class="tool active" data-label="Grid">
+            <svg viewBox="0 0 24 24"><path d="M3 3h18v18H3zM3 9h18M3 15h18M9 3v18M15 3v18"/></svg>
+        </button>
+        <button id="theme-btn" class="tool" data-label="Dark theme">
+            <svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+        </button>
+        <span class="divider"></span>
+        <button id="screenshot-btn" class="tool" data-label="Screenshot">
+            <svg viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/></svg>
+        </button>
+        <button id="hide-btn" class="tool" data-label="Hide interface">
+            <svg viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+        <input type="file" id="open-input" multiple style="display: none;">
+    </div>
 
     <script type="module" src="{{ url_for('static', filename='viewer.js') }}"></script>
 </body>
