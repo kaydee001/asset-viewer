@@ -1,4 +1,4 @@
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { OrbitControls } from './vendor/three/addons/controls/OrbitControls.js';
 import { camera, renderer } from './scene.js';
 
 // scene controls

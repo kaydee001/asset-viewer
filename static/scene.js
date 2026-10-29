@@ -1,6 +1,6 @@
-import * as THREE from 'three';
-import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
-import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import * as THREE from './vendor/three/build/three.module.js';
+import { RGBELoader } from './vendor/three/addons/loaders/RGBELoader.js';
+import { RoomEnvironment } from './vendor/three/addons/environments/RoomEnvironment.js';
 
 // canvas size
 const width = window.innerWidth;

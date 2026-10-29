@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+import * as THREE from './vendor/three/build/three.module.js';
 
 const clock = new THREE.Clock();
 const section = document.getElementById("animation-section");
