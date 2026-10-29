@@ -7,7 +7,9 @@
     <link rel="icon" href="data:,">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<body class="light">
+<body class="dark">
+    <div id="progress"></div>
+
     <div id="overlay" style="display: none;">
         <p>Drop to open</p>
     </div>
@@ -35,6 +37,10 @@
 
     <div id="left-panel" class="card">
         <div id="stats-panel"></div>
+        <div class="panel-section" id="parts-section">
+            <div class="section-title" id="parts-title"><span>Parts</span></div>
+            <div id="parts-list"></div>
+        </div>
     </div>
 
     <div id="right-panel" class="card">
@@ -45,7 +51,17 @@
             <button id="bottom-lock-btn" class="row active" role="switch"><span class="row-label">Lock below grid</span><span class="switch"><i></i></span></button>
             <button id="wireframe-btn" class="row" role="switch"><span class="row-label">Wireframe</span><kbd>W</kbd><span class="switch"><i></i></span></button>
             <button id="grid-btn" class="row active" role="switch"><span class="row-label">Grid</span><kbd>G</kbd><span class="switch"><i></i></span></button>
-            <button id="theme-btn" class="row" role="switch"><span class="row-label">Dark mode</span><kbd>T</kbd><span class="switch"><i></i></span></button>
+            <button id="theme-btn" class="row active" role="switch"><span class="row-label">Dark mode</span><kbd>T</kbd><span class="switch"><i></i></span></button>
+        </div>
+
+        <div class="panel-section">
+            <div class="section-title">Shading</div>
+            <select id="shading-select">
+                <option value="shaded">Shaded</option>
+                <option value="clay">Clay</option>
+                <option value="normals">Normals</option>
+                <option value="uv">UV checker</option>
+            </select>
         </div>
 
         <div class="panel-section">

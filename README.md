@@ -11,6 +11,10 @@ Drop in a GLB, FBX, or OBJ and inspect it — no uploads, no accounts, no nonsen
 - external .bin / .mtl / texture files resolved from the dropped set, Draco and meshopt compressed GLBs
 - one asset per session: loading a new model replaces the current one
 - animation playback for GLB / FBX clips
+- shading modes: shaded, clay, normals, UV checker
+- parts list with per-part triangle counts and show/hide
+- open from the command line or Explorer's "open with": `python main.py model.glb`
+- dark mode by default, settings remembered between launches
 - mesh stats — objects, vertices, faces, triangles, dimensions, file size
 - HDRI lighting with built-in presets + custom upload
 - orbit controls with auto-rotate, pan, bottom lock
@@ -36,8 +40,10 @@ HDRI files are not committed. Put `.hdr` files named `hdri_1.hdr` ... `hdri_5.hd
 
 ```bash
 pip install -r requirements.txt
-python main.py
+python main.py [model.glb] [--debug]
 ```
+
+`--debug` opens the Chromium dev tools port, inspect the app at http://localhost:9222.
 
 ## build exe
 

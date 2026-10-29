@@ -15,8 +15,8 @@ export const renderer = new THREE.WebGLRenderer({alpha: true, antialias: true});
 camera.position.set(2.5, 2.5, 2.5);
 
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1;
-renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMappingExposure = 0.7;
+renderer.outputEncoding = THREE.sRGBEncoding;
 
 // renderer.domElement -> canvas element
 renderer.setPixelRatio(Math.min(Math.max(window.devicePixelRatio, 2), 3));
@@ -56,7 +56,7 @@ export function setEnvironment(url){
 setEnvironment("/hdri/hdri_1.hdr");
 
 // directional light + shadows
-const light1 = new THREE.DirectionalLight(0xffffff, 0.8);
+const light1 = new THREE.DirectionalLight(0xffffff, 0.5);
 light1.position.set(5, 10, 5);
 light1.castShadow = true;
 light1.shadow.camera.left = -5;

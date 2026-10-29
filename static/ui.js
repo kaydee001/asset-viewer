@@ -2,6 +2,7 @@ import { scene, camera, renderer, setEnvironment, gridHelper } from './scene.js'
 import { controls } from './controls.js';
 import { loadModel, frameCamera, modelLoaded, currentObject, modelRoot } from './loader.js';
 import { showToast, hideToast } from './toast.js';
+import { applyViewMode } from './viewmodes.js';
 
 // toolbar buttons show their on/off state as a highlight
 function setLabel(btn, name, isOn){
@@ -59,14 +60,23 @@ let wireframeOn = false;
 function setWireframe(value){
     wireframeOn = value;
     modelRoot.traverse(function(obj){
-        if(obj.isMesh && obj.material){
-            const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+        if(!obj.isMesh) return;
+        // set it on the model's own materials as well as whatever debug view is showing
+        [obj.material, obj.userData.originalMaterial].filter(Boolean).forEach(function(source){
+            const mats = Array.isArray(source) ? source : [source];
             mats.forEach(m => m.wireframe = wireframeOn);
-        }
+        });
     });
     setLabel(wireframeBtn, "wireframe", wireframeOn);
 }
 wireframeBtn.addEventListener("click", () => setWireframe(!wireframeOn));
+
+// shading mode (shaded, clay, normals, uv checker)
+const shadingSelect = document.getElementById("shading-select");
+shadingSelect.addEventListener("change", ()=>{
+    applyViewMode(modelRoot, shadingSelect.value);
+    setWireframe(wireframeOn);
+});
 
 // toggle scene grid
 const gridBtn = document.getElementById("grid-btn");
@@ -230,3 +240,53 @@ openInput.addEventListener("change", (event)=>{
     handleFiles([...event.target.files]);
     openInput.value = "";
 });
+
+// collapse / expand panel sections
+document.addEventListener("click", (event)=>{
+    const title = event.target.closest(".section-title");
+    if(title) title.parentElement.classList.toggle("collapsed");
+});
+
+// settings are remembered between launches
+const SETTINGS_KEY = "asset-viewer-settings";
+function saveSettings(){
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify({
+        dark: document.body.classList.contains("dark"),
+        grid: gridHelper.visible,
+        autoRotate: controls.autoRotate,
+        pan: controls.enablePan,
+        lock: controls.maxPolarAngle === Math.PI/2,
+        hdri: hdriSelect.value,
+        shading: shadingSelect.value
+    }));
+}
+const rightPanel = document.getElementById("right-panel");
+rightPanel.addEventListener("click", () => setTimeout(saveSettings));
+rightPanel.addEventListener("change", saveSettings);
+
+// dark is the default, the saved values only change what differs from it
+let saved = {};
+try { saved = JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {}; } catch(error) {}
+if(saved.dark === false) themeBtn.click();
+if(saved.grid === false) gridBtn.click();
+if(saved.autoRotate) rotateBtn.click();
+if(saved.pan) panBtn.click();
+if(saved.lock === false) bottomLockBtn.click();
+if(saved.hdri && hdriSelect.querySelector(`option[value="${saved.hdri}"]`)){
+    hdriSelect.value = saved.hdri;
+    if(saved.hdri !== "hdri_1.hdr") setEnvironment(`/hdri/${saved.hdri}`);
+}
+if(saved.shading && shadingSelect.querySelector(`option[value="${saved.shading}"]`)){
+    shadingSelect.value = saved.shading;
+    applyViewMode(modelRoot, saved.shading);
+}
+
+// a file passed on the command line (or "open with") is served by the local server
+fetch("/startup-files").then(r => r.json()).then(async function(items){
+    if(!items.length) return;
+    const files = await Promise.all(items.map(async function(item){
+        const blob = await (await fetch(item.url)).blob();
+        return new File([blob], item.name);
+    }));
+    handleFiles(files);
+}).catch(error => console.error(error));

@@ -9,6 +9,8 @@ import { mergeVertices } from './vendor/three/addons/utils/BufferGeometryUtils.j
 import { scene, camera } from './scene.js';
 import { controls } from './controls.js';
 import { setAnimations } from './animation.js';
+import { applyViewMode } from './viewmodes.js';
+import { buildOutliner } from './outliner.js';
 
 const MODEL_SIZE = 4;
 
@@ -55,7 +57,9 @@ function disposeObject(object){
     object.traverse(function(obj){
         if(obj.geometry) obj.geometry.dispose();
         if(!obj.material) return;
-        const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+        // a debug view may be active, dispose the model's own materials, not the shared override
+        const source = obj.userData.originalMaterial || obj.material;
+        const mats = Array.isArray(source) ? source : [source];
         mats.forEach(function(mat){
             Object.values(mat).forEach(value => { if(value && value.isTexture) value.dispose(); });
             mat.dispose();
@@ -169,6 +173,8 @@ export async function loadModel(file, allFiles){
     object.position.z -= center.z;
     object.position.y -= box.min.y;
 
+    applyViewMode(object);
+
     frameCamera(object);
     setAnimations(object, result.animations);
 
@@ -176,8 +182,10 @@ export async function loadModel(file, allFiles){
     let objCount = 0;
     let vertices = 0;
     let triangles = 0;
+    const materials = new Set();
     object.traverse(function(obj){
         if(!obj.isMesh) return;
+        [].concat(obj.userData.originalMaterial || obj.material).forEach(m => materials.add(m));
         const merged = mergeVertices(obj.geometry);
         vertices += merged.attributes.position.count;
         merged.dispose();
@@ -190,6 +198,7 @@ export async function loadModel(file, allFiles){
     const rows = [
         ["name", file.name],
         ["objects", objCount.toLocaleString()],
+        ["materials", materials.size.toLocaleString()],
         ["vertices", vertices.toLocaleString()],
         ["faces", triangles.toLocaleString()],
         ["triangles", triangles.toLocaleString()],
@@ -213,4 +222,6 @@ export async function loadModel(file, allFiles){
         statsPanel.append(row);
     }
     document.body.classList.add("has-model");
+    buildOutliner(object);
+    document.title = `${file.name} - Asset Viewer`;
 }

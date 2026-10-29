@@ -22,7 +22,7 @@ export function setAnimations(object, newClips){
     action = null;
     clips = newClips || [];
     select.textContent = "";
-    section.style.display = clips.length ? "flex" : "none";
+    section.style.display = clips.length ? "block" : "none";
     if(!clips.length) return;
 
     mixer = new THREE.AnimationMixer(object);
