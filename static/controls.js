@@ -5,8 +5,8 @@ import {scene, camera, renderer} from './scene.js'
 export const controls = new OrbitControls(camera, renderer.domElement);
 
 controls.zoomSpeed = 1.0;
-controls.minDistance = 5;
-controls.maxDistance = 10;
+controls.minDistance = 1;
+controls.maxDistance = 20;
 
 controls.enablePan = false;
 controls.minPolarAngle = 0;
