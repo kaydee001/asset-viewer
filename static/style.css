@@ -1,4 +1,5 @@
 *{
+    user-select: none;
     margin: 0;
     padding: 0;
     box-sizing: border-box;
@@ -25,13 +26,35 @@ body.dark{
     font-size: 2rem;
     top: 0;
     left: 0;
+    border: 3px dashed #00eeff;
+    pointer-events: none;
 }
 
 .section-title{
     color: #00eeff;
-    font-size: 1rem;
+    font-size: 0.8rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
     margin-bottom: 4px;
-    opacity: 0.75;
+    opacity: 0.9;
+}
+
+.hint{
+    opacity: 0.6;
+    font-size: 0.7rem;
+}
+
+canvas{
+    cursor: grab;
+}
+
+canvas:active{
+    cursor: grabbing;
+}
+
+body.ui-hidden #left-panel,
+body.ui-hidden #right-panel{
+    display: none;
 }
 
 .panel-section{
@@ -50,6 +73,10 @@ body.dark{
     border: 1px solid #00eeff;
     padding: 16px;
     min-width: 220px;
+    max-width: 320px;
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+    overflow-wrap: anywhere;
     color: #00eeff;
     font-size: 0.8rem;
     line-height: 1.8;
@@ -67,6 +94,8 @@ body.dark{
     padding: 16px;
     background: rgba(21, 27, 35, 0.75);
     border: 1px solid #00eeff;
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
 }
 
 button{
@@ -84,6 +113,42 @@ button{
 button:hover{
     background: #00eeff;
     color: #151B23;
+}
+
+button:focus-visible,
+select:focus-visible{
+    outline: 2px solid #ffffff;
+    outline-offset: 2px;
+}
+
+button:active{
+    transform: translateY(1px);
+}
+
+#asset-list button.active{
+    background: rgba(0, 238, 255, 0.25);
+}
+
+#asset-list button{
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 280px;
+}
+
+@media (max-width: 760px){
+    #left-panel{
+        min-width: 0;
+        max-width: 45vw;
+        padding: 10px;
+    }
+    #right-panel{
+        padding: 10px;
+    }
+    button, select{
+        min-width: 0;
+        width: 190px;
+    }
 }
 
 select{
@@ -134,4 +199,12 @@ select{
     font-size: 0.75rem;
     opacity: 0.75;
     padding: 6px 0;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#hdri-name:empty{
+    display: none;
 }

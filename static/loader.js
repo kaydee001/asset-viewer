@@ -30,15 +30,17 @@ currentObject = defaultCube;
 // auto frame camera
 export function frameCamera(object){
     const box = new THREE.Box3().setFromObject(object);
-    const center = box.getCenter(new THREE.Vector3());
-    const size = box.getSize(new THREE.Vector3());
-    const maxDim = Math.max(size.x, size.y, size.z);
+    const sphere = box.getBoundingSphere(new THREE.Sphere());
 
-    camera.position.set(center.x, center.y+maxDim*1.5, center.z+maxDim*3);
-    controls.target.set(center.x, center.y, center.z);
+    // distance at which the bounding sphere just fits the view, with some margin
+    const distance = sphere.radius / Math.sin(THREE.MathUtils.degToRad(camera.fov) / 2) * 1.15;
+    const direction = new THREE.Vector3(0, 0.45, 1).normalize();
 
-    controls.minDistance = maxDim * 0.5;
-    controls.maxDistance = maxDim * 10;
+    camera.position.copy(sphere.center).addScaledVector(direction, distance);
+    controls.target.copy(sphere.center);
+
+    controls.minDistance = sphere.radius * 0.5;
+    controls.maxDistance = sphere.radius * 10;
 
     controls.update();
 }
@@ -171,10 +173,10 @@ export async function loadModel(file, allFiles){
     // display mesh stats
     const rows = [
         ["name", file.name],
-        ["no of objects", objCount],
-        ["vertices", vertices],
-        ["faces", triangles],
-        ["triangles", triangles],
+        ["no of objects", objCount.toLocaleString()],
+        ["vertices", vertices.toLocaleString()],
+        ["faces", triangles.toLocaleString()],
+        ["triangles", triangles.toLocaleString()],
         ["dimensions", `${rawSize.x.toFixed(2)} x ${rawSize.y.toFixed(2)} x ${rawSize.z.toFixed(2)}`],
         ["file size", `${(file.size/1024/1024).toFixed(2)} mb`]
     ];

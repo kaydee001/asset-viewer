@@ -132,12 +132,21 @@ const shortcuts = {
     g: gridBtn,
     r: rotateBtn,
     f: resetBtn,
-    s: document.getElementById("screenshot-btn")
+    s: document.getElementById("screenshot-btn"),
+    o: document.getElementById("open-btn")
 };
+for(const [key, btn] of Object.entries(shortcuts)){
+    btn.title = `shortcut: ${key.toUpperCase()}`;
+}
 window.addEventListener("keydown", (event)=>{
     if(event.ctrlKey || event.metaKey || event.altKey) return;
     if(event.target.tagName === "SELECT" || event.target.tagName === "INPUT") return;
-    const btn = shortcuts[event.key.toLowerCase()];
+    const key = event.key.toLowerCase();
+    if(key === "h"){
+        document.body.classList.toggle("ui-hidden");
+        return;
+    }
+    const btn = shortcuts[key];
     if(btn) btn.click();
 });
 
@@ -153,6 +162,7 @@ async function openModel(file){
     try {
         await loadModel(file, droppedFiles);
         setWireframe(false);
+        assetList.querySelectorAll("button").forEach(b => b.classList.toggle("active", b.dataset.name === file.name));
         hideToast();
     } catch(error) {
         console.error(error);
@@ -174,6 +184,8 @@ function handleFiles(files){
         for(const model of models){
             const item = document.createElement("button");
             item.textContent = model.name;
+            item.title = model.name;
+            item.dataset.name = model.name;
             item.addEventListener("click", () => openModel(model));
             assetList.append(item);
         }

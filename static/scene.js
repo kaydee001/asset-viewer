@@ -77,8 +77,10 @@ ground.receiveShadow = true;
 scene.add(ground);
 
 // scene grid setup
-const size = 20;
-const divisions = 40;
-export const gridHelper = new THREE.GridHelper(size, divisions, 0x000099);
+const size = 12;
+const divisions = 24;
+export const gridHelper = new THREE.GridHelper(size, divisions, 0x3344aa, 0x888888);
+gridHelper.material.transparent = true;
+gridHelper.material.opacity = 0.5;
 gridHelper.position.y = -0.01;
 scene.add(gridHelper);
