@@ -1,10 +1,7 @@
-import * as THREE from 'https://esm.sh/three@0.150.0';
-import { GLTFLoader } from 'https://esm.sh/three@0.150.0/examples/jsm/loaders/GLTFLoader.js';
-import { FBXLoader } from 'https://esm.sh/three@0.150.0/examples/jsm/loaders/FBXLoader.js';
-import { OBJLoader } from 'https://esm.sh/three@0.150.0/examples/jsm/loaders/OBJLoader.js';
-import { scene, camera, rgbeLoader, gridHelper } from './scene.js';
+import { scene, camera, renderer, setEnvironment, gridHelper } from './scene.js';
 import { controls } from './controls.js';
 import { loadModel, frameCamera, modelLoaded, currentObject } from './loader.js';
+import { showToast, hideToast } from './toast.js';
 
 // keeps button text in sync with state
 function setLabel(btn, name, isOn, onText = "on", offText = "off"){
@@ -14,11 +11,7 @@ function setLabel(btn, name, isOn, onText = "on", offText = "off"){
 // select hdri
 const hdriSelect = document.getElementById("hdri-select");
 hdriSelect.addEventListener("change", (event)=>{
-    const updatedHDRI = event.target.value;
-    rgbeLoader.load(`/hdri/${updatedHDRI}`, function(texture){
-        texture.mapping = THREE.EquirectangularReflectionMapping;
-        scene.environment = texture;    
-    })
+    setEnvironment(`/hdri/${event.target.value}`);
     document.getElementById("hdri-name").textContent = "";
 });
 
@@ -30,18 +23,15 @@ uploadHdrBtn.addEventListener("click", ()=>{
 });
 hdriUpload.addEventListener("change", (event)=>{
     const file = event.target.files[0];
-    const url = URL.createObjectURL(file);
-    rgbeLoader.load(url, function(texture){
-        texture.mapping = THREE.EquirectangularReflectionMapping;
-        scene.environment = texture;    
-    })
+    if(!file) return;
+    setEnvironment(URL.createObjectURL(file));
     document.getElementById("hdri-name").textContent = file.name;
 });
 
 // bottom lock toggle
 const bottomLockBtn = document.getElementById("bottom-lock-btn");
 bottomLockBtn.addEventListener("click", ()=>{
-    const isLocked = controls.maxPolarAngle === Math.PI/2;  
+    const isLocked = controls.maxPolarAngle === Math.PI/2;
     controls.maxPolarAngle = isLocked ? Math.PI : Math.PI/2;
     setLabel(bottomLockBtn, "bottom lock", !isLocked);
 });
@@ -92,6 +82,18 @@ themeBtn.addEventListener("click", ()=>{
     setLabel(themeBtn, "theme", document.body.classList.contains("dark"), "dark", "light");
 });
 
+// save the current view as a png
+document.getElementById("screenshot-btn").addEventListener("click", ()=>{
+    renderer.render(scene, camera);
+    renderer.domElement.toBlob((blob)=>{
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = "screenshot.png";
+        link.click();
+        URL.revokeObjectURL(link.href);
+    });
+});
+
 // reset back to default
 const resetBtn = document.getElementById("reset-btn");
 resetBtn.addEventListener("click", ()=>{
@@ -118,11 +120,86 @@ resetBtn.addEventListener("click", ()=>{
     }
     else
     {
-        camera.position.set(2.5, 2.5, 2.5); 
-        controls.target.set(0, 0, 0);
+        camera.position.set(2.5, 2.5, 2.5);
+        controls.target.set(0, 0.5, 0);
         controls.update();
     }
 });
+
+// keyboard shortcuts
+const shortcuts = {
+    w: wireframeBtn,
+    g: gridBtn,
+    r: rotateBtn,
+    f: resetBtn,
+    s: document.getElementById("screenshot-btn")
+};
+window.addEventListener("keydown", (event)=>{
+    if(event.ctrlKey || event.metaKey || event.altKey) return;
+    if(event.target.tagName === "SELECT" || event.target.tagName === "INPUT") return;
+    const btn = shortcuts[event.key.toLowerCase()];
+    if(btn) btn.click();
+});
+
+// loading models: a drop / file pick can hold several models plus their .bin, .mtl and texture files
+const MODEL_EXTENSIONS = ["gltf", "glb", "fbx", "obj"];
+const assetList = document.getElementById("asset-list");
+let droppedFiles = [];
+
+const extOf = (file) => file.name.split('.').pop().toLowerCase();
+
+async function openModel(file){
+    showToast(`loading ${file.name}...`, {sticky: true});
+    try {
+        await loadModel(file, droppedFiles);
+        setWireframe(false);
+        hideToast();
+    } catch(error) {
+        console.error(error);
+        showToast(`could not load ${file.name}: ${error.message || error}`, {error: true});
+    }
+}
+
+function handleFiles(files){
+    const models = files.filter(f => MODEL_EXTENSIONS.includes(extOf(f)));
+    if(!models.length){
+        showToast("no supported model found (glb, gltf, fbx, obj)", {error: true});
+        return;
+    }
+    droppedFiles = files;
+
+    // list every model so several can be browsed, click one to view it
+    assetList.textContent = "";
+    if(models.length > 1){
+        for(const model of models){
+            const item = document.createElement("button");
+            item.textContent = model.name;
+            item.addEventListener("click", () => openModel(model));
+            assetList.append(item);
+        }
+    }
+    openModel(models[0]);
+}
+
+// read dropped files, including everything inside dropped folders
+function readEntry(entry){
+    if(entry.isFile){
+        return new Promise(resolve => entry.file(resolve, () => resolve(null))).then(f => f ? [f] : []);
+    }
+    return new Promise(function(resolve){
+        const reader = entry.createReader();
+        const all = [];
+        const readBatch = () => reader.readEntries(async function(batch){
+            if(!batch.length){
+                resolve((await Promise.all(all.map(readEntry))).flat());
+                return;
+            }
+            all.push(...batch);
+            readBatch();
+        }, () => resolve([]));
+        readBatch();
+    });
+}
 
 // drag and drop 3D model
 const dropZone = document.body;
@@ -140,23 +217,23 @@ dropZone.addEventListener("dragleave", (event)=>{
     }
 })
 
-dropZone.addEventListener("drop", (event)=>{
+dropZone.addEventListener("drop", async (event)=>{
     event.preventDefault();
     document.getElementById("overlay").style.display = "none";
 
-    const file = event.dataTransfer.files[0];
-    if(!file) return;
-
-    const fileExt = file.name.split('.').pop().toLowerCase();
-    const loaders = {
-        gltf: GLTFLoader,
-        glb: GLTFLoader,
-        fbx: FBXLoader,
-        obj: OBJLoader
-    };
-    const LoaderClass = loaders[fileExt];
-    if(!LoaderClass) return;
-
-    setWireframe(false);
-    loadModel(URL.createObjectURL(file), file, new LoaderClass());
+    // entries must be grabbed synchronously, before the first await
+    const entries = [...event.dataTransfer.items].map(item => item.webkitGetAsEntry && item.webkitGetAsEntry());
+    const plainFiles = [...event.dataTransfer.files];
+    const files = entries.every(Boolean)
+        ? (await Promise.all(entries.map(readEntry))).flat()
+        : plainFiles;
+    handleFiles(files);
 })
+
+// open file button
+const openInput = document.getElementById("open-input");
+document.getElementById("open-btn").addEventListener("click", ()=> openInput.click());
+openInput.addEventListener("change", (event)=>{
+    handleFiles([...event.target.files]);
+    openInput.value = "";
+});

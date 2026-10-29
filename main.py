@@ -2,14 +2,34 @@ from PyQt5.QtWidgets import QApplication, QMainWindow
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 from PyQt5.QtCore import QUrl
 import server
+import socket
 import sys
 import threading
 import time
 
+
+def free_port():
+    with socket.socket() as s:
+        s.bind(("127.0.0.1", 0))
+        return s.getsockname()[1]
+
+
+def wait_for_server(port, timeout=10):
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        try:
+            with socket.create_connection(("127.0.0.1", port), timeout=0.2):
+                return
+        except OSError:
+            time.sleep(0.05)
+    raise RuntimeError("flask server did not start")
+
+
 if __name__ == "__main__":
-    thread1 = threading.Thread(target=server.run_flask, daemon=True)
+    port = free_port()
+    thread1 = threading.Thread(target=server.run_flask, args=(port,), daemon=True)
     thread1.start()
-    time.sleep(1)
+    wait_for_server(port)
 
     qt_app = QApplication(sys.argv)
 
@@ -18,7 +38,7 @@ if __name__ == "__main__":
     window.resize(1280, 780)
 
     browser = QWebEngineView()
-    browser.setUrl(QUrl("http://127.0.0.1:5000/"))
+    browser.setUrl(QUrl(f"http://127.0.0.1:{port}/"))
 
     window.setCentralWidget(browser)
 

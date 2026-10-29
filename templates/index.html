@@ -5,6 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">  
     <title>Asset Viewer</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "{{ url_for('static', filename='vendor/three/build/three.module.js') }}",
+            "three/addons/": "{{ url_for('static', filename='vendor/three/addons/') }}"
+        }
+    }
+    </script>
 </head>
 <body class="light">
     <div id="drop-zone"></div>
@@ -15,9 +23,17 @@
 
     <div id="left-panel">
         <div id="stats-panel">drop a 3D file to begin</div>
+        <div id="asset-list"></div>
     </div>
 
+    <div id="toast" style="display: none;"></div>
+
     <div id="right-panel">
+        <div class="panel-section">
+            <button id="open-btn">open file</button>
+            <input type="file" id="open-input" multiple style="display: none;">
+        </div>
+
         <div class="panel-section">
             <div class="section-title">camera</div>
             <button id="auto-rotate-btn"> - auto rotate [off]</button>
@@ -30,6 +46,13 @@
             <button id="wireframe-btn"> - wireframe [off]</button>
             <button id="grid-btn"> - grid [on]</button>
             <button id="theme-btn"> - theme [light]</button>
+            <button id="screenshot-btn"> - screenshot</button>
+        </div>
+
+        <div class="panel-section" id="animation-section" style="display: none;">
+            <div class="section-title">animation</div>
+            <select id="animation-select"></select>
+            <button id="animation-btn"> - pause</button>
         </div>
 
         <div class="panel-section">
