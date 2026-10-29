@@ -6,7 +6,7 @@ import { showToast, hideToast } from './toast.js';
 // toolbar buttons show their on/off state as a highlight
 function setLabel(btn, name, isOn){
     btn.classList.toggle("active", isOn);
-    btn.setAttribute("aria-pressed", isOn);
+    btn.setAttribute("aria-checked", isOn);
 }
 
 // select hdri
