@@ -72,7 +72,7 @@ renderer.shadowMap.enabled = true;
 // invisible ground that only shows the model's shadow
 const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(20, 20),
-    new THREE.ShadowMaterial({opacity: 0.25})
+    new THREE.ShadowMaterial({opacity: 0.35})
 );
 ground.rotation.x = -Math.PI/2;
 ground.receiveShadow = true;

@@ -36,7 +36,7 @@ currentObject = defaultCube;
 
 // auto frame camera
 export function frameCamera(object){
-    const box = new THREE.Box3().setFromObject(object);
+    const box = new THREE.Box3().setFromObject(object, true);
     const sphere = box.getBoundingSphere(new THREE.Sphere());
 
     // distance at which the bounding sphere just fits the view, with some margin
@@ -154,7 +154,7 @@ export async function loadModel(file, allFiles){
     currentObject = object;
 
     // real-world size before normalizing
-    const rawSize = new THREE.Box3().setFromObject(object).getSize(new THREE.Vector3());
+    const rawSize = new THREE.Box3().setFromObject(object, true).getSize(new THREE.Vector3());
 
     object.traverse(function(obj){
         if(obj.isMesh && obj.material){
@@ -167,7 +167,7 @@ export async function loadModel(file, allFiles){
     // normalize scale, center on x/z and rest on the grid
     const rawMax = Math.max(rawSize.x, rawSize.y, rawSize.z);
     if(rawMax > 0) object.scale.multiplyScalar(MODEL_SIZE / rawMax);
-    const box = new THREE.Box3().setFromObject(object);
+    const box = new THREE.Box3().setFromObject(object, true);
     const center = box.getCenter(new THREE.Vector3());
     object.position.x -= center.x;
     object.position.z -= center.z;
