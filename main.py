@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QApplication, QMainWindow
+from PyQt5.QtWidgets import QApplication, QFileDialog, QMainWindow
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 from PyQt5.QtCore import QUrl
 import server
@@ -25,6 +25,16 @@ def wait_for_server(port, timeout=10):
     raise RuntimeError("flask server did not start")
 
 
+def save_download(item):
+    # QtWebEngine drops downloads (like the screenshot png) unless the app accepts them
+    path, _ = QFileDialog.getSaveFileName(None, "save", item.path())
+    if path:
+        item.setPath(path)
+        item.accept()
+    else:
+        item.cancel()
+
+
 if __name__ == "__main__":
     port = free_port()
     thread1 = threading.Thread(target=server.run_flask, args=(port,), daemon=True)
@@ -38,6 +48,7 @@ if __name__ == "__main__":
     window.resize(1280, 780)
 
     browser = QWebEngineView()
+    browser.page().profile().downloadRequested.connect(save_download)
     browser.setUrl(QUrl(f"http://127.0.0.1:{port}/"))
 
     window.setCentralWidget(browser)

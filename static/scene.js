@@ -19,7 +19,7 @@ renderer.toneMappingExposure = 1;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 
 // renderer.domElement -> canvas element
-renderer.setPixelRatio(window.devicePixelRatio);
+renderer.setPixelRatio(Math.min(Math.max(window.devicePixelRatio, 2), 3));
 renderer.setSize(width, height);
 document.body.appendChild(renderer.domElement);
 
@@ -64,6 +64,8 @@ light1.shadow.camera.right = 5;
 light1.shadow.camera.top = 5;
 light1.shadow.camera.bottom = -5;
 light1.shadow.mapSize.set(2048, 2048);
+light1.shadow.bias = -0.0005;
+light1.shadow.normalBias = 0.03;
 scene.add(light1);
 renderer.shadowMap.enabled = true;
 

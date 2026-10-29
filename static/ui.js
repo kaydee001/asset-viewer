@@ -1,6 +1,6 @@
 import { scene, camera, renderer, setEnvironment, gridHelper } from './scene.js';
 import { controls } from './controls.js';
-import { loadModel, frameCamera, modelLoaded, currentObject } from './loader.js';
+import { loadModel, frameCamera, modelLoaded, currentObject, modelRoot } from './loader.js';
 import { showToast, hideToast } from './toast.js';
 
 // toolbar buttons show their on/off state as a highlight
@@ -58,7 +58,7 @@ const wireframeBtn = document.getElementById("wireframe-btn");
 let wireframeOn = false;
 function setWireframe(value){
     wireframeOn = value;
-    scene.traverse(function(obj){
+    modelRoot.traverse(function(obj){
         if(obj.isMesh && obj.material){
             const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
             mats.forEach(m => m.wireframe = wireframeOn);
@@ -95,33 +95,16 @@ document.getElementById("screenshot-btn").addEventListener("click", ()=>{
     });
 });
 
-// reset back to default
+// reset the camera view, other settings stay as they are
 const resetBtn = document.getElementById("reset-btn");
 resetBtn.addEventListener("click", ()=>{
-    controls.autoRotate = false;
-    setLabel(rotateBtn, "auto rotate", false);
-
-    gridHelper.visible = true;
-    setLabel(gridBtn, "grid", true);
-
-    controls.enablePan = false;
-    setLabel(panBtn, "pan", false);
-
-    controls.maxPolarAngle = Math.PI/2;
-    setLabel(bottomLockBtn, "bottom lock", true);
-
-    document.body.classList.remove("dark");
-    document.body.classList.add("light");
-    setLabel(themeBtn, "theme", false);
-
-    setWireframe(false);
     if (modelLoaded)
     {
         frameCamera(currentObject);
     }
     else
     {
-        camera.position.set(2.5, 2.5, 2.5);
+        camera.position.set(2.5, 2.5, 2.5); 
         controls.target.set(0, 0.5, 0);
         controls.update();
     }

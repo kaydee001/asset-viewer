@@ -15,6 +15,11 @@ const MODEL_SIZE = 4;
 export let modelLoaded = false;
 export let currentObject = null;
 
+// everything the user loaded lives under this group
+export const modelRoot = new THREE.Group();
+scene.add(modelRoot);
+let loadToken = 0;
+
 // default cube
 const defaultCubeGeometry = new THREE.BoxGeometry(1, 1, 1);
 const defaultCubeMaterial = new THREE.MeshStandardMaterial({color: 0xffffff, metalness: 0.0, roughness: 1});
@@ -24,7 +29,7 @@ defaultCube.position.y = 0.5;
 defaultCube.castShadow = true;
 defaultCube.receiveShadow = true;
 
-scene.add(defaultCube);
+modelRoot.add(defaultCube);
 currentObject = defaultCube;
 
 // auto frame camera
@@ -83,6 +88,7 @@ function fileKey(name){
 
 // load one model file, resolving sidecar files (.bin, .mtl, textures) from the dropped set
 export async function loadModel(file, allFiles){
+    const token = ++loadToken;
     const urls = new Map();
     const blobUrls = [];
     for(const f of allFiles){
@@ -124,12 +130,22 @@ export async function loadModel(file, allFiles){
     }
 
     const object = result.scene !== undefined ? result.scene : result;
-    scene.remove(currentObject);
-    disposeObject(currentObject);
+
+    // a newer load started while this one was reading, drop this result
+    if(token !== loadToken){
+        disposeObject(object);
+        blobUrls.forEach(u => URL.revokeObjectURL(u));
+        return;
+    }
+
+    for(const child of [...modelRoot.children]){
+        modelRoot.remove(child);
+        disposeObject(child);
+    }
     activeUrls.forEach(u => URL.revokeObjectURL(u));
     activeUrls = blobUrls;
 
-    scene.add(object);
+    modelRoot.add(object);
     modelLoaded = true;
     currentObject = object;
 

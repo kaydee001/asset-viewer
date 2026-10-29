@@ -71,7 +71,6 @@ body.ui-hidden .card{
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 2px;
     font-size: 0.9rem;
     pointer-events: none;
 }
@@ -126,7 +125,6 @@ body:not(.has-model) #left-panel{
 #asset-list{
     display: flex;
     flex-direction: column;
-    gap: 2px;
     margin-top: 10px;
     padding-top: 10px;
     border-top: 1px solid var(--card-border);
@@ -150,6 +148,10 @@ body:not(.has-model) #left-panel{
     white-space: nowrap;
 }
 
+#asset-list button + button{
+    margin-top: 2px;
+}
+
 #asset-list button:hover{
     background: var(--hover);
 }
@@ -167,15 +169,14 @@ body:not(.has-model) #left-panel{
     max-height: calc(100vh - 120px);
     overflow-y: auto;
     padding: 14px;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
 }
 
-.panel-section{
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+.panel-section + .panel-section{
+    margin-top: 16px;
+}
+
+.panel-section > * + *{
+    margin-top: 8px;
 }
 
 .section-title{
@@ -229,7 +230,6 @@ select option{
     transform: translateX(-50%);
     display: flex;
     align-items: center;
-    gap: 6px;
     padding: 6px;
 }
 
@@ -242,6 +242,7 @@ select option{
 
 .tool{
     position: relative;
+    margin: 0 3px;
     width: 38px;
     height: 38px;
     display: flex;
@@ -290,6 +291,10 @@ select option{
     border-radius: 6px;
     white-space: nowrap;
     pointer-events: none;
+}
+
+.tool:focus, select:focus, .text-btn:focus, #asset-list button:focus{
+    outline: none;
 }
 
 .tool:focus-visible, select:focus-visible, .text-btn:focus-visible, #asset-list button:focus-visible{
