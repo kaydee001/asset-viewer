@@ -9,7 +9,7 @@ Drop in a GLB, FBX, or OBJ and inspect it — no uploads, no accounts, no nonsen
 
 - drag and drop model loading (GLB, GLTF, FBX, OBJ), files or whole folders, plus an open-file button
 - external .bin / .mtl / texture files resolved from the dropped set, Draco and meshopt compressed GLBs
-- drop several models at once and switch between them from a list
+- one asset per session: loading a new model replaces the current one
 - animation playback for GLB / FBX clips
 - mesh stats — objects, vertices, faces, triangles, dimensions, file size
 - HDRI lighting with built-in presets + custom upload

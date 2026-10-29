@@ -144,20 +144,21 @@ window.addEventListener("keydown", (event)=>{
     if(btn) btn.click();
 });
 
-// loading models: a drop / file pick can hold several models plus their .bin, .mtl and texture files
+// loading a model: one asset per session, .bin, .mtl and texture files in the same drop are used as its sidecars
 const MODEL_EXTENSIONS = ["gltf", "glb", "fbx", "obj"];
-const assetList = document.getElementById("asset-list");
-let droppedFiles = [];
 
 const extOf = (file) => file.name.split('.').pop().toLowerCase();
 
-async function openModel(file){
+async function openModel(file, files, ignored){
     showToast(`loading ${file.name}...`, {sticky: true});
     try {
-        await loadModel(file, droppedFiles);
+        await loadModel(file, files);
         setWireframe(false);
-        assetList.querySelectorAll("button").forEach(b => b.classList.toggle("active", b.dataset.name === file.name));
-        hideToast();
+        if(ignored){
+            showToast(`loaded ${file.name}, ${ignored} other model(s) ignored (one asset per session)`);
+        } else {
+            hideToast();
+        }
     } catch(error) {
         console.error(error);
         showToast(`could not load ${file.name}: ${error.message || error}`, {error: true});
@@ -170,21 +171,7 @@ function handleFiles(files){
         showToast("no supported model found (glb, gltf, fbx, obj)", {error: true});
         return;
     }
-    droppedFiles = files;
-
-    // list every model so several can be browsed, click one to view it
-    assetList.textContent = "";
-    if(models.length > 1){
-        for(const model of models){
-            const item = document.createElement("button");
-            item.textContent = model.name;
-            item.title = model.name;
-            item.dataset.name = model.name;
-            item.addEventListener("click", () => openModel(model));
-            assetList.append(item);
-        }
-    }
-    openModel(models[0]);
+    openModel(models[0], files, models.length - 1);
 }
 
 // read dropped files, including everything inside dropped folders
