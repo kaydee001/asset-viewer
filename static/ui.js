@@ -6,6 +6,11 @@ import { scene, camera, rgbeLoader, gridHelper } from './scene.js';
 import { controls } from './controls.js';
 import { loadModel, frameCamera, modelLoaded, currentObject } from './loader.js';
 
+// keeps button text in sync with state
+function setLabel(btn, name, isOn, onText = "on", offText = "off"){
+    btn.textContent = `- ${name} [${isOn ? onText : offText}]`;
+}
+
 // select hdri
 const hdriSelect = document.getElementById("hdri-select");
 hdriSelect.addEventListener("change", (event)=>{
@@ -38,14 +43,14 @@ const bottomLockBtn = document.getElementById("bottom-lock-btn");
 bottomLockBtn.addEventListener("click", ()=>{
     const isLocked = controls.maxPolarAngle === Math.PI/2;  
     controls.maxPolarAngle = isLocked ? Math.PI : Math.PI/2;
-    bottomLockBtn.textContent = isLocked ? `- bottom lock [off]` : `- bottom lock [on]`;
+    setLabel(bottomLockBtn, "bottom lock", !isLocked);
 });
 
 // pan around object
 const panBtn = document.getElementById("pan-btn");
 panBtn.addEventListener("click", ()=>{
     controls.enablePan = !controls.enablePan;
-    panBtn.textContent = controls.enablePan ? `- pan [on]` : `- pan [off]`;
+    setLabel(panBtn, "pan", controls.enablePan);
 });
 
 // toggle auto rotate
@@ -53,26 +58,30 @@ controls.autoRotate = false;
 const rotateBtn = document.getElementById("auto-rotate-btn");
 rotateBtn.addEventListener("click", ()=>{
     controls.autoRotate = !controls.autoRotate;
-    rotateBtn.textContent = controls.autoRotate ? `- auto rotate [on]` : `- auto rotate [off]`;
+    setLabel(rotateBtn, "auto rotate", controls.autoRotate);
 })
 controls.autoRotateSpeed = 5.0;
 
 // toggle wireframe mode
 const wireframeBtn = document.getElementById("wireframe-btn");
-wireframeBtn.addEventListener("click", () => {
+let wireframeOn = false;
+function setWireframe(value){
+    wireframeOn = value;
     scene.traverse(function(obj){
-        if(obj.type == "Mesh"){
-            obj.material.wireframe = !obj.material.wireframe;
-            wireframeBtn.textContent = obj.material.wireframe ? `- wireframe [on]` : `- wireframe [off]`;
+        if(obj.isMesh && obj.material){
+            const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+            mats.forEach(m => m.wireframe = wireframeOn);
         }
-    })
-});
+    });
+    setLabel(wireframeBtn, "wireframe", wireframeOn);
+}
+wireframeBtn.addEventListener("click", () => setWireframe(!wireframeOn));
 
 // toggle scene grid
 const gridBtn = document.getElementById("grid-btn");
 gridBtn.addEventListener("click", ()=>{
     gridHelper.visible = !gridHelper.visible;
-    gridBtn.textContent = gridHelper.visible ? `- grid [on]` : `- grid [off]`;
+    setLabel(gridBtn, "grid", gridHelper.visible);
 });
 
 // toggle theme (light <-> dark)
@@ -80,30 +89,29 @@ const themeBtn = document.getElementById("theme-btn");
 themeBtn.addEventListener("click", ()=>{
     document.body.classList.toggle("dark");
     document.body.classList.toggle("light");
-    themeBtn.textContent = document.body.classList.contains("dark") ? `- theme [dark]` : `- theme [light]`;
+    setLabel(themeBtn, "theme", document.body.classList.contains("dark"), "dark", "light");
 });
 
 // reset back to default
 const resetBtn = document.getElementById("reset-btn");
 resetBtn.addEventListener("click", ()=>{
     controls.autoRotate = false;
+    setLabel(rotateBtn, "auto rotate", false);
 
     gridHelper.visible = true;
+    setLabel(gridBtn, "grid", true);
 
     controls.enablePan = false;
+    setLabel(panBtn, "pan", false);
 
     controls.maxPolarAngle = Math.PI/2;
-    bottomLockBtn.textContent = `- bottom lock [on]`;
+    setLabel(bottomLockBtn, "bottom lock", true);
 
     document.body.classList.remove("dark");
-    themeBtn.textContent = `- theme [light]`;
     document.body.classList.add("light");
+    setLabel(themeBtn, "theme", false, "dark", "light");
 
-    scene.traverse(function(obj){
-        if(obj.type == "Mesh"){
-            obj.material.wireframe = false;
-        }
-    });
+    setWireframe(false);
     if (modelLoaded)
     {
         frameCamera(currentObject);
@@ -125,29 +133,30 @@ dropZone.addEventListener("dragover", (event)=>{
     document.getElementById("overlay").style.display = "flex";
 })
 
+dropZone.addEventListener("dragleave", (event)=>{
+    // relatedTarget is null only when the drag leaves the window
+    if(event.relatedTarget === null){
+        document.getElementById("overlay").style.display = "none";
+    }
+})
+
 dropZone.addEventListener("drop", (event)=>{
     event.preventDefault();
-
-    // remove current object
-    scene.remove(currentObject);
+    document.getElementById("overlay").style.display = "none";
 
     const file = event.dataTransfer.files[0];
-    const fileName = file.name;
-    const fileExt = fileName.split('.').pop().toLowerCase();   
-    const url = URL.createObjectURL(file);
+    if(!file) return;
 
-    if(fileExt == "gltf" || fileExt == "glb")
-    {
-        loadModel(url, file, new GLTFLoader());
-    }
-    else if(fileExt == "fbx")
-    {
-        loadModel(url, file, new FBXLoader());
-    }   
-    else if(fileExt == "obj")
-    {
-        loadModel(url, file, new OBJLoader());
-    }
+    const fileExt = file.name.split('.').pop().toLowerCase();
+    const loaders = {
+        gltf: GLTFLoader,
+        glb: GLTFLoader,
+        fbx: FBXLoader,
+        obj: OBJLoader
+    };
+    const LoaderClass = loaders[fileExt];
+    if(!LoaderClass) return;
 
-    document.getElementById("overlay").style.display = "none";
+    setWireframe(false);
+    loadModel(URL.createObjectURL(file), file, new LoaderClass());
 })

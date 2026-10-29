@@ -48,6 +48,7 @@ export function loadModel(  url, file, loader){
     let objCount = 0;
     loader.load(url, function(result){
         const object = result.scene !== undefined ? result.scene : result;
+        scene.remove(currentObject);
         scene.add(object);
         setModelLoaded(true);
         setCurrentObject(object);
@@ -71,7 +72,7 @@ export function loadModel(  url, file, loader){
         let triangles = 0;
 
         scene.traverse(function(obj){
-            if(obj.type == "Mesh"){
+            if(obj.isMesh){
                 const merged = mergeVertices(obj.geometry);
                 vertices += merged.attributes.position.count;
 
@@ -92,21 +93,24 @@ export function loadModel(  url, file, loader){
         })
 
         // converting phong material to standard material
+        const toStandard = (mat) => {
+            if(!mat.isMeshPhongMaterial) return mat;
+            const converted = new THREE.MeshStandardMaterial({
+                color: mat.color,
+                roughness: 0.5,
+                metalness: 0,
+                map: mat.map || null,
+                emissive: mat.emissive || new THREE.Color(0x000000),
+                emissiveIntensity: mat.emissiveIntensity !== undefined ? mat.emissiveIntensity : 1,
+                emissiveMap: mat.emissiveMap || null
+            });
+            mat.dispose();
+            return converted;
+        };
         object.traverse(function(obj){
             if(obj.isMesh && obj.material)
             {
-                if(obj.material.isMeshPhongMaterial)
-                {
-                    obj.material = new THREE.MeshStandardMaterial({
-                        color: obj.material.color,
-                        roughness: obj.material.roughness !== undefined ? obj.material.roughness : 0.5,
-                        metalness: obj.material.metalness !== undefined ? obj.material.metalness : 1,
-                        map: obj.material.map || null,
-                        emissive: obj.material.emissive || new THREE.Color(0x000000),
-                        emissiveIntensity: obj.material.emissiveIntensity !== undefined ? obj.material.emissiveIntensity : 1,
-                        emissiveMap: obj.material.emissiveMap || null
-                    });
-                }
+                obj.material = Array.isArray(obj.material) ? obj.material.map(toStandard) : toStandard(obj.material);
             }
         })
 
@@ -114,14 +118,21 @@ export function loadModel(  url, file, loader){
         const fileSize = file.size/1024/1024;
 
         // display mesh stats
-        document.getElementById("stats-panel").innerHTML = `
-        <strong>name</strong> : ${fileName}<br>
-        <strong>no</strong> of objects : ${objCount}<br>
-        <strong>vertices</strong> : ${vertices}<br>
-        <strong>faces</strong> : ${faces}<br>
-        <strong>triangles</strong> : ${triangles}<br>
-        <strong>file size</strong> : ${fileSize.toFixed(2)} mb<br>
-        `;
+        const statsPanel = document.getElementById("stats-panel");
+        statsPanel.textContent = "";
+        const rows = [
+            ["name", fileName],
+            ["no of objects", objCount],
+            ["vertices", vertices],
+            ["faces", faces],
+            ["triangles", triangles],
+            ["file size", `${fileSize.toFixed(2)} mb`]
+        ];
+        for(const [label, value] of rows){
+            const strong = document.createElement("strong");
+            strong.textContent = label;
+            statsPanel.append(strong, ` : ${value}`, document.createElement("br"));
+        }
     }, undefined, function(error){
         console.error(error);
     });
