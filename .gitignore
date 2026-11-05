@@ -8,9 +8,9 @@ __pycache__/
 
 # Distribution / packaging
 .Python
-build/
+/build/
 develop-eggs/
-dist/
+/dist/
 downloads/
 eggs/
 .eggs/
@@ -220,19 +220,24 @@ __marimo__/
 #ignore info
 info.txt
 
-#hdris
-*hdri
+#hdris (the folder stays, so the pyinstaller --add-data hdri works on a fresh clone)
+/hdri/*
+!/hdri/.gitkeep
 
-#meshes
-*gltf
-*glb
-*fbx
-*obj
-*mtl
+#meshes (samples/ is for the small test models that are committed on purpose)
+*.gltf
+*.glb
+*.fbx
+*.obj
+*.mtl
+*.stl
+*.ply
+*.3mf
+!/samples/**
 
-#builds
-dist/
-build/
+#builds (root only: static/vendor/three/build/ must stay tracked)
+/dist/
+/build/
 *.spec
 
 #backup-folder
