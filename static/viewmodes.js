@@ -1,7 +1,9 @@
 import * as THREE from './vendor/three/build/three.module.js';
 
-// debug views that temporarily replace the model's own materials
+// shading modes (the Shading dropdown): each one swaps every mesh's material for a shared override.
+// "shaded" puts the model's own materials back
 
+// 16x16 black/white checker drawn on a canvas, used to spot stretched or flipped UVs
 function checkerTexture(){
     const canvas = document.createElement("canvas");
     canvas.width = canvas.height = 512;
@@ -21,13 +23,16 @@ function checkerTexture(){
     return texture;
 }
 
+// one shared material per mode (never disposed with the model)
 const overrides = {
     clay: new THREE.MeshStandardMaterial({color: 0xc8c8c8, roughness: 0.85, metalness: 0}),
     normals: new THREE.MeshNormalMaterial(),
-    uv: new THREE.MeshBasicMaterial({map: checkerTexture()})
+    uv: new THREE.MeshBasicMaterial({map: checkerTexture()}),
+    vertexcolors: new THREE.MeshBasicMaterial({vertexColors: true}),
+    novertexcolors: new THREE.MeshBasicMaterial({color: 0x808080}) // stand-in for meshes that have no color data
 };
 
-let mode = "shaded";
+let mode = "shaded"; // remembered so a newly loaded model gets the active mode
 
 // the model's own material is kept in userData so it can be restored and disposed later
 export function applyViewMode(root, newMode = mode){
@@ -35,6 +40,8 @@ export function applyViewMode(root, newMode = mode){
     root.traverse(function(obj){
         if(!obj.isMesh) return;
         if(!obj.userData.originalMaterial) obj.userData.originalMaterial = obj.material;
-        obj.material = mode === "shaded" ? obj.userData.originalMaterial : overrides[mode];
+        if(mode === "shaded") obj.material = obj.userData.originalMaterial;
+        else if(mode === "vertexcolors") obj.material = obj.geometry.attributes.color ? overrides.vertexcolors : overrides.novertexcolors;
+        else obj.material = overrides[mode];
     });
 }

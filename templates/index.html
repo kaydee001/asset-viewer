@@ -7,13 +7,17 @@
     <link rel="icon" href="data:,">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
+<!-- single page; all behaviour is in static/*.js, entry point is viewer.js -->
 <body class="dark">
+    <!-- loading bar along the top edge, animated by the body.busy class -->
     <div id="progress"></div>
 
+    <!-- shown while a file is dragged over the window -->
     <div id="overlay" style="display: none;">
         <p>Drop to open</p>
     </div>
 
+    <!-- top bar: open / reset / screenshot / hide ui -->
     <div id="commandbar" class="card">
         <button id="open-btn" class="tool" data-label="Open file">
             <svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
@@ -28,6 +32,10 @@
             <span>Screenshot</span>
         </button>
         <span class="divider"></span>
+        <button id="help-btn" class="tool" data-label="Keyboard shortcuts">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7"/><path d="M12 17h.01"/></svg>
+            <span>Help</span>
+        </button>
         <button id="hide-btn" class="tool" data-label="Hide interface">
             <svg viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
             <span>Hide UI</span>
@@ -35,22 +43,28 @@
         <input type="file" id="open-input" multiple style="display: none;">
     </div>
 
+    <!-- left: model stats and parts list, both filled in by loader.js / outliner.js -->
     <div id="left-panel" class="card">
         <div id="stats-panel"></div>
         <div class="panel-section" id="parts-section">
             <div class="section-title" id="parts-title"><span>Parts</span></div>
             <div id="parts-list"></div>
+            <!-- materials of the part selected in the list (outliner.js) -->
+            <div id="material-info"></div>
         </div>
     </div>
 
+    <!-- right: settings. the .row buttons are on/off switches wired up in ui.js -->
     <div id="right-panel" class="card">
         <div class="panel-section">
             <div class="section-title">View</div>
             <button id="auto-rotate-btn" class="row" role="switch"><span class="row-label">Auto rotate</span><kbd>R</kbd><span class="switch"><i></i></span></button>
-            <button id="pan-btn" class="row" role="switch"><span class="row-label">Pan</span><kbd>P</kbd><span class="switch"><i></i></span></button>
+            <button id="ortho-btn" class="row" role="switch"><span class="row-label">Orthographic</span><kbd>P</kbd><span class="switch"><i></i></span></button>
             <button id="bottom-lock-btn" class="row active" role="switch"><span class="row-label">Lock below grid</span><span class="switch"><i></i></span></button>
             <button id="wireframe-btn" class="row" role="switch"><span class="row-label">Wireframe</span><kbd>W</kbd><span class="switch"><i></i></span></button>
             <button id="grid-btn" class="row active" role="switch"><span class="row-label">Grid</span><kbd>G</kbd><span class="switch"><i></i></span></button>
+            <button id="bbox-btn" class="row" role="switch"><span class="row-label">Bounding box</span><kbd>B</kbd><span class="switch"><i></i></span></button>
+            <button id="axes-btn" class="row" role="switch"><span class="row-label">Axes</span><kbd>X</kbd><span class="switch"><i></i></span></button>
             <button id="theme-btn" class="row active" role="switch"><span class="row-label">Dark mode</span><kbd>T</kbd><span class="switch"><i></i></span></button>
         </div>
 
@@ -61,12 +75,14 @@
                 <option value="clay">Clay</option>
                 <option value="normals">Normals</option>
                 <option value="uv">UV checker</option>
+                <option value="vertexcolors">Vertex colors</option>
             </select>
         </div>
 
         <div class="panel-section">
             <div class="section-title">Lighting</div>
             <select id="hdri-select">
+                <!-- values are file names in the hdri/ folder -->
                 <option value="hdri_1.hdr">Studio small 08</option>
                 <option value="hdri_2.hdr">Citrus orchid road</option>
                 <option value="hdri_3.hdr">Meadow 02</option>
@@ -76,21 +92,66 @@
             <div id="hdri-name"></div>
             <button id="upload-hdri-btn" class="text-btn">Upload HDRI...</button>
             <input type="file" id="hdri-upload" accept=".hdr" style="display: none;">
+            <!-- turns the hdri and the key light together (scene.js) -->
+            <label class="slider-row"><span>Light angle</span><input type="range" id="sun-range" min="0" max="360" value="0"></label>
+            <label class="slider-row"><span>Exposure</span><input type="range" id="exposure-range" min="0.1" max="2" step="0.05" value="0.7"></label>
         </div>
 
-        <div class="panel-section" id="animation-section" style="display: none;">
-            <div class="section-title">Animation</div>
-            <select id="animation-select"></select>
-            <button id="animation-btn" class="text-btn">Pause</button>
+        <div class="panel-section">
+            <div class="section-title">Screenshot</div>
+            <select id="shot-scale">
+                <option value="1">Window size</option>
+                <option value="2">2x resolution</option>
+                <option value="4">4x resolution</option>
+            </select>
+            <button id="shot-bg-btn" class="row" role="switch"><span class="row-label">Include background</span><span class="switch"><i></i></span></button>
+        </div>
+
+        <!-- only shown for gltf files that contain cameras (ui.js) -->
+        <div class="panel-section" id="camera-section" style="display: none;">
+            <div class="section-title">Camera</div>
+            <select id="camera-select"></select>
         </div>
     </div>
 
+    <!-- transport bar: always visible, enabled by animation.js when the model has animation clips -->
+    <div id="transport" class="card">
+        <button id="animation-btn" class="icon-btn play" data-label="Play / pause" aria-label="Play / pause">
+            <svg class="ic-play" viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z"/></svg>
+            <svg class="ic-pause" viewBox="0 0 24 24"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>
+        </button>
+        <span id="animation-current" class="time">0:00</span>
+        <input type="range" id="animation-time" min="0" max="1" step="0.001" value="0" aria-label="Seek">
+        <span id="animation-duration" class="time">0:00</span>
+        <select id="animation-select" aria-label="Animation clip"></select>
+        <select id="animation-speed" aria-label="Playback speed">
+            <option value="0.25">0.25x</option>
+            <option value="0.5">0.5x</option>
+            <option value="1" selected>1x</option>
+            <option value="2">2x</option>
+        </select>
+        <button id="animation-loop-btn" class="icon-btn active" role="switch" aria-checked="true" aria-label="Loop" data-label="Loop">
+            <svg viewBox="0 0 24 24"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a3 3 0 0 1 3-3h15"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a3 3 0 0 1-3 3H3"/></svg>
+        </button>
+    </div>
+
+    <!-- empty state, hidden once a model is loaded (body.has-model) -->
     <div id="hint" class="card">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/></svg>
         <strong>Drop a 3D model or folder here</strong>
-        <span>glb &middot; gltf &middot; fbx &middot; obj</span>
+        <span>glb &middot; gltf &middot; fbx &middot; obj &middot; stl &middot; ply &middot; 3mf</span>
     </div>
 
-    <div id="toast" style="display: none;"></div>
+    <div id="toast" role="status" aria-live="polite" style="display: none;"></div>
+
+    <!-- keyboard shortcut list, rows are generated from the shortcut map in shortcuts.js -->
+    <div id="help" style="display: none;">
+        <div id="help-card" class="card" role="dialog" aria-modal="true" aria-label="Keyboard shortcuts">
+            <div class="help-title">Keyboard shortcuts</div>
+            <div id="help-list"></div>
+            <div class="help-foot">Press <kbd>Esc</kbd> to close</div>
+        </div>
+    </div>
 
     <script type="module" src="{{ url_for('static', filename='viewer.js') }}"></script>
 </body>

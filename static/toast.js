@@ -2,6 +2,7 @@
 const toast = document.getElementById("toast");
 let hideTimer = null;
 
+// sticky = stays until hideToast() and shows the loading bar along the top (the "busy" class on body)
 export function showToast(message, {error = false, sticky = false} = {}){
     clearTimeout(hideTimer);
     toast.textContent = message;
