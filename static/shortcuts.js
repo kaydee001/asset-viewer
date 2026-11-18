@@ -8,7 +8,7 @@ const shortcuts = {
     g: gridBtn,
     r: rotateBtn,
     f: resetBtn,
-    s: document.getElementById("screenshot-btn"),
+    // s: document.getElementById("screenshot-btn"), // screenshot is hidden for now (index.html)
     o: document.getElementById("open-btn"),
     t: themeBtn,
     p: orthoBtn,

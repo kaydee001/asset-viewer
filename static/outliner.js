@@ -6,6 +6,10 @@ const MAX_INDENT = 8; // deeper levels are drawn at the same indent
 
 // texture slots worth listing in the material info
 const MAP_SLOTS = ["map", "normalMap", "roughnessMap", "metalnessMap", "aoMap", "emissiveMap", "alphaMap", "bumpMap"];
+const SLOT_LABELS = {
+    map: "Base color map", normalMap: "Normal map", roughnessMap: "Roughness map", metalnessMap: "Metalness map",
+    aoMap: "AO map", emissiveMap: "Emissive map", alphaMap: "Alpha map", bumpMap: "Bump map"
+};
 
 // rebuilt from scratch for every loaded model
 export function buildOutliner(object){
@@ -17,7 +21,8 @@ export function buildOutliner(object){
 
     let meshCount = 0;
     object.traverse(obj => { if(obj.isMesh) meshCount++; });
-    title.firstChild.textContent = `Parts (${meshCount})`;
+    title.firstChild.textContent = "Parts";
+    document.getElementById("parts-count").textContent = meshCount.toLocaleString("en-US");
 
     let rows = 0;
     let selected = null;
@@ -29,7 +34,7 @@ export function buildOutliner(object){
 
         const row = document.createElement("div");
         row.className = "part";
-        row.style.paddingLeft = `${2 + Math.min(depth, MAX_INDENT) * 12}px`;
+        row.style.paddingLeft = `${8 + Math.min(depth, MAX_INDENT) * 12}px`;
 
         const check = document.createElement("input");
         check.type = "checkbox";
@@ -47,7 +52,7 @@ export function buildOutliner(object){
             // non-indexed geometry has 3 vertices per triangle, indexed has 3 indices per triangle
             const geometry = node.geometry;
             const tris = (geometry.index ? geometry.index.count : geometry.attributes.position.count) / 3;
-            count.textContent = Math.round(tris).toLocaleString();
+            count.textContent = Math.round(tris).toLocaleString("en-US");
         }
 
         row.append(check, name, count);
@@ -79,18 +84,18 @@ function showMaterials(info, mesh){
 
         const head = document.createElement("div");
         head.className = "material-name";
-        head.textContent = mat.name || `material ${i + 1}`;
+        head.textContent = mat.name || `Material ${i + 1}`;
         box.append(head);
 
-        const lines = [["type", mat.type.replace("Mesh", "").replace("Material", "")]];
-        if(mat.color) lines.push(["color", `#${mat.color.getHexString()}`]);
-        if(mat.roughness !== undefined) lines.push(["roughness", mat.roughness.toFixed(2)]);
-        if(mat.metalness !== undefined) lines.push(["metalness", mat.metalness.toFixed(2)]);
-        if(mat.transparent || mat.opacity < 1) lines.push(["opacity", mat.opacity.toFixed(2)]);
-        if(mat.side === 2) lines.push(["sides", "double"]);
+        const lines = [["Type", mat.type.replace("Mesh", "").replace("Material", "")]];
+        if(mat.color) lines.push(["Color", `#${mat.color.getHexString()}`]);
+        if(mat.roughness !== undefined) lines.push(["Roughness", mat.roughness.toFixed(2)]);
+        if(mat.metalness !== undefined) lines.push(["Metalness", mat.metalness.toFixed(2)]);
+        if(mat.transparent || mat.opacity < 1) lines.push(["Opacity", mat.opacity.toFixed(2)]);
+        if(mat.side === 2) lines.push(["Sides", "Double"]);
         MAP_SLOTS.forEach(function(slot){
             const image = mat[slot] && mat[slot].image;
-            if(mat[slot]) lines.push([slot, image && image.width ? `${image.width} x ${image.height}` : "yes"]);
+            if(mat[slot]) lines.push([SLOT_LABELS[slot], image && image.width ? `${image.width} × ${image.height}` : "Yes"]);
         });
 
         lines.forEach(function([label, value]){

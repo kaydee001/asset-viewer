@@ -3,7 +3,7 @@
 //   shortcuts.js (keys), dragdrop.js (opening files), settings.js (remembering all of this)
 import {
     scene, camera, renderer, setEnvironment, setSunAngle, setGridTheme, gridHelper,
-    projection, PERSPECTIVE_FOV, ORTHO_FOV, ORTHO_SCALE
+    projection, PERSPECTIVE_FOV, ORTHO_FOV, ORTHO_SCALE, SETTLED_PIXEL_RATIO
 } from './scene.js';
 import { updateViewOffset } from './layout.js';
 import { bboxHelper, axesHelper } from './helpers.js';
@@ -132,7 +132,16 @@ gridBtn.addEventListener("click", ()=>{
 
 // toggle theme (light <-> dark)
 export const themeBtn = document.getElementById("theme-btn");
+// a user toggle fades the colours (style.css body.theme-fade); the restore on startup switches at once
+let themeFade = false;
+requestAnimationFrame(() => { themeFade = true; });
+let fadeTimer = null;
 themeBtn.addEventListener("click", ()=>{
+    if(themeFade){
+        document.body.classList.add("theme-fade");
+        clearTimeout(fadeTimer);
+        fadeTimer = setTimeout(() => document.body.classList.remove("theme-fade"), 400);
+    }
     document.body.classList.toggle("dark");
     document.body.classList.toggle("light");
     const dark = document.body.classList.contains("dark");
@@ -150,7 +159,8 @@ shotBgBtn.addEventListener("click", ()=>{
 
 document.getElementById("screenshot-btn").addEventListener("click", ()=>{
     const gl = renderer.getContext();
-    const ratio = renderer.getPixelRatio();
+    // the supersampled ratio, even if the click came while the view was still moving (drawn at screen resolution)
+    const ratio = SETTLED_PIXEL_RATIO;
     const size = renderer.getSize(new THREE.Vector2());
     // never ask for a canvas bigger than the gpu allows
     const limit = gl.getParameter(gl.MAX_RENDERBUFFER_SIZE);
@@ -222,9 +232,19 @@ export const exposureRange = document.getElementById("exposure-range");
 export function setExposure(value){ renderer.toneMappingExposure = value; }
 exposureRange.addEventListener("input", () => setExposure(+exposureRange.value));
 
+// double click a slider (light angle, exposure) to put it back to its default (the value in index.html)
+for(const range of [sunRange, exposureRange]){
+    range.addEventListener("dblclick", () => {
+        range.value = range.defaultValue;
+        range.dispatchEvent(new Event("input", {bubbles: true}));
+        range.dispatchEvent(new Event("change", {bubbles: true}));
+    });
+}
+
 // a flat colour standing in for the background in screenshots: the theme's base colour
 function backgroundColor(){
-    return document.body.classList.contains("dark") ? "#181b22" : "#dbe4f2";
+    // keep in step with --stage in style.css
+    return document.body.classList.contains("dark") ? "#161617" : "#c6c6c9";
 }
 
 // cameras stored in a gltf file, offered next to the normal orbit camera
@@ -260,7 +280,7 @@ cameraSelect.addEventListener("change", ()=>{
 document.getElementById("hide-btn").addEventListener("click", ()=>{
     document.body.classList.toggle("ui-hidden");
     if(document.body.classList.contains("ui-hidden")){
-        showToast("interface hidden, press H to show it");
+        showToast("Interface hidden, press H to show it");
     }
 });
 
@@ -269,3 +289,9 @@ document.addEventListener("click", (event)=>{
     const title = event.target.closest(".section-title");
     if(title) title.parentElement.classList.toggle("collapsed");
 });
+
+// focus rings only for keyboard users (QtWebEngine's Chromium 83 has no :focus-visible), see style.css
+window.addEventListener("keydown", (event) => {
+    if(event.key === "Tab") document.body.classList.add("keyboard");
+});
+window.addEventListener("mousedown", () => document.body.classList.remove("keyboard"));

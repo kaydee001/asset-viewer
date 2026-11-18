@@ -14,7 +14,7 @@ import { PLYLoader } from './vendor/three/addons/loaders/PLYLoader.js';
 import { ThreeMFLoader } from './vendor/three/addons/loaders/3MFLoader.js';
 import { DRACOLoader } from './vendor/three/addons/loaders/DRACOLoader.js';
 import { MeshoptDecoder } from './vendor/three/addons/libs/meshopt_decoder.module.js';
-import { scene, camera, renderer, projection, PERSPECTIVE_FOV, ORTHO_FOV } from './scene.js';
+import { scene, camera, renderer, projection, PERSPECTIVE_FOV, ORTHO_FOV, requestRender } from './scene.js';
 import { controls } from './controls.js';
 import { setAnimations } from './animation.js';
 import { applyViewMode } from './viewmodes.js';
@@ -44,9 +44,9 @@ modelRoot.add(defaultCube);
 setBoundingTarget(defaultCube);
 currentObject = defaultCube;
 
-// put the camera at a 3/4 angle far enough away that the whole object is in view
-export function frameCamera(object){
-    const box = new THREE.Box3().setFromObject(object, true);
+// put the camera at a 3/4 angle far enough away that the whole object is in view.
+// box: the object's exact bounds if the caller already has them (measuring walks every vertex)
+export function frameCamera(object, box = new THREE.Box3().setFromObject(object, true)){
     const sphere = box.getBoundingSphere(new THREE.Sphere());
 
     // distance at which the bounding sphere just fits the view, with some margin
@@ -62,6 +62,7 @@ export function frameCamera(object){
     controls.maxDistance = sphere.radius * 10 * projection.scale;
 
     controls.update();
+    requestRender();
 }
 
 // free gpu memory held by a removed object
@@ -139,6 +140,8 @@ export async function loadModel(file, allFiles){
 
     // redirect any url the loaders ask for (e.g. "textures/wood.png") to the matching dropped file
     const manager = new THREE.LoadingManager();
+    // textures can finish after the model is on screen (fbx, obj), draw them as they arrive
+    manager.onProgress = requestRender;
     manager.setURLModifier(function(url){
         if(url.startsWith("blob:") || url.startsWith("data:")) return url;
         return urls.get(fileKey(decodeURIComponent(url.split("?")[0]))) || url;
@@ -201,7 +204,8 @@ export async function loadModel(file, allFiles){
     currentObject = object;
 
     // original size, shown in the stats panel (the model itself gets rescaled below)
-    const rawSize = new THREE.Box3().setFromObject(object, true).getSize(new THREE.Vector3());
+    const box = new THREE.Box3().setFromObject(object, true);
+    const rawSize = box.getSize(new THREE.Vector3());
 
     // standard materials so the hdri lights every model the same way
     object.traverse(function(obj){
@@ -211,19 +215,27 @@ export async function loadModel(file, allFiles){
     });
 
     // normalize scale, center on x/z and rest on the grid
+    // scaling the root by k around its own position moves every point p to pos + k(p - pos), and so does
+    // the box, so it is adjusted here instead of walking every vertex again
     const rawMax = Math.max(rawSize.x, rawSize.y, rawSize.z);
-    if(rawMax > 0) object.scale.multiplyScalar(MODEL_SIZE / rawMax);
-    const box = new THREE.Box3().setFromObject(object, true);
+    if(rawMax > 0){
+        const k = MODEL_SIZE / rawMax;
+        const pivot = object.getWorldPosition(new THREE.Vector3());
+        object.scale.multiplyScalar(k);
+        box.min.sub(pivot).multiplyScalar(k).add(pivot);
+        box.max.sub(pivot).multiplyScalar(k).add(pivot);
+    }
     const center = box.getCenter(new THREE.Vector3());
-    object.position.x -= center.x;
-    object.position.z -= center.z;
-    object.position.y -= box.min.y;
+    const offset = new THREE.Vector3(-center.x, -box.min.y, -center.z);
+    object.position.add(offset);
+    object.updateMatrixWorld(true);
+    box.translate(offset);
 
     applyViewMode(object);
     setBoundingTarget(object);
     modelCameras = (result.cameras || []).filter(c => c.isPerspectiveCamera);
 
-    frameCamera(object);
+    frameCamera(object, box);
     setAnimations(object, result.animations);
 
     showStats(object, file, rawSize);

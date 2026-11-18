@@ -1,6 +1,7 @@
 // plays the clips that come with GLB / FBX files and drives the transport bar at the bottom of the viewport:
 // play / pause, time scrubber, clip picker, speed and loop
 import * as THREE from './vendor/three/build/three.module.js';
+import { invalidateBox } from './helpers.js';
 
 const clock = new THREE.Clock();
 const select = document.getElementById("animation-select");
@@ -31,7 +32,9 @@ function formatTime(seconds){
 function showPosition(fraction){
     timeSlider.value = fraction;
     timeSlider.style.setProperty("--pct", `${fraction * 100}%`);
-    currentLabel.textContent = formatTime(fraction * (action ? action.getClip().duration : 0));
+    // the label changes once a second, writing it every frame would only cost layout work
+    const time = formatTime(fraction * (action ? action.getClip().duration : 0));
+    if(currentLabel.textContent !== time) currentLabel.textContent = time;
 }
 
 // start the clip picked in the dropdown (stopping the previous one)
@@ -116,18 +119,21 @@ timeSlider.addEventListener("input", () => {
     setPlaying(false);
     action.time = timeSlider.value * action.getClip().duration;
     mixer.update(0);
+    invalidateBox();
     showPosition(+timeSlider.value);
 });
 timeSlider.addEventListener("change", () => { scrubbing = false; });
 
-// called every frame from viewer.js
+// called every frame from viewer.js; returns true while a clip is playing (so the frame has to be drawn).
+// a paused clip does no work at all, scrubbing updates the mixer itself
 export function updateAnimation(){
     const delta = clock.getDelta();
-    if(!mixer) return;
+    if(!mixer || !action || action.paused) return false;
     mixer.update(delta);
-    if(!scrubbing && action){
+    if(!scrubbing){
         showPosition(action.time / action.getClip().duration);
         // keeps the icon right when a clip stops by itself (loop off)
-        setPlaying(!action.paused);
+        if(action.paused) setPlaying(false);
     }
+    return true;
 }

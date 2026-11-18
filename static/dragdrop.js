@@ -11,19 +11,19 @@ const extOf = (file) => file.name.split('.').pop().toLowerCase();
 
 // load with a progress toast; errors are shown to the user instead of thrown
 async function openModel(file, files, ignored){
-    showToast(`loading ${file.name}...`, {sticky: true});
+    showToast(`Loading ${file.name}…`, {sticky: true});
     try {
         await loadModel(file, files);
         setWireframe(false);
         updateCameraSelect();
         if(ignored){
-            showToast(`loaded ${file.name}, ${ignored} other model(s) ignored (one asset per session)`);
+            showToast(`Opened ${file.name}. ${ignored} other ${ignored === 1 ? "model was" : "models were"} skipped, one asset per session`);
         } else {
             hideToast();
         }
     } catch(error) {
         console.error(error);
-        showToast(`could not load ${file.name}: ${error.message || error}`, {error: true});
+        showToast(`Could not load ${file.name}: ${error.message || error}`, {error: true});
     }
 }
 
@@ -31,7 +31,7 @@ async function openModel(file, files, ignored){
 function handleFiles(files){
     const models = files.filter(f => MODEL_EXTENSIONS.includes(extOf(f)));
     if(!models.length){
-        showToast(`no supported model found (${MODEL_EXTENSIONS.join(", ")})`, {error: true});
+        showToast(`No supported model found (${MODEL_EXTENSIONS.join(", ")})`, {error: true});
         return;
     }
     openModel(models[0], files, models.length - 1);

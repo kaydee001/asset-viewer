@@ -43,7 +43,7 @@ The `samples/` folder has a few tiny models to try it with, for example `python 
 
 ### HDRIs
 
-HDRI files are not committed. Put `.hdr` files named `hdri_1.hdr` to `hdri_5.hdr` in an `hdri/` folder (the names match the dropdown in `templates/index.html`). Without them, built-in room lighting is used.
+HDRI files are not committed. The presets are 2k `.hdr` files from [Poly Haven](https://polyhaven.com/hdris) (CC0): `studio_small_09`, `brown_photostudio_02`, `photo_studio_loft_hall`, `empty_warehouse_01`, `kloofendal_overcast_puresky` and `venice_sunset`, saved in `hdri/` as for example `studio_small_09_2k.hdr` (the names match the Lighting dropdown in `templates/index.html`). Without them, built-in room lighting is used.
 
 ### Tests
 
@@ -104,7 +104,7 @@ static/
   scene.js              scene, camera, renderer, lights, grid, HDRI loading and rotation
   controls.js           orbit controls and their limits
   loader.js             loads a model, scales and centers it
-  stats.js              the model info card (counts, size)
+  stats.js              the model spec in the left panel (format, counts, dimensions)
   viewmodes.js          shading modes, done by swapping materials
   outliner.js           the parts tree on the left and the material readout
   animation.js          animation clip picker, scrubber, speed, loop, play/pause
@@ -114,7 +114,7 @@ static/
   shortcuts.js          keyboard shortcuts and tooltips
   dragdrop.js           drag and drop, the Open button, the command line file
   settings.js           remembers the settings between launches
-  style.css             all styling (Windows 11 look, dark/light via body class)
+  style.css             all styling (neutral graphite docks, one amber accent, dark/light via body class)
   vendor/three/         three.js (r150) and the loaders/addons used
 ```
 

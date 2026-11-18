@@ -52,7 +52,7 @@ def test_set_startup_files_stores_absolute_paths():
 
 
 def test_hdri_maps_are_served(client):
-    assert client.get("/hdri/hdri_1.hdr").status_code == 200
+    assert client.get("/hdri/studio_small_09_2k.hdr").status_code == 200
 
 
 def test_missing_hdri_is_404(client):

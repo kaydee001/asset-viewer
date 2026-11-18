@@ -12,7 +12,8 @@ const height = window.innerHeight;
 // scene setup
 export const scene = new THREE.Scene();
 export const camera = new THREE.PerspectiveCamera(50, width/height, 0.1, 1000);
-export const renderer = new THREE.WebGLRenderer({alpha: true, antialias: true});
+// high-performance asks laptops with two GPUs for the dedicated one
+export const renderer = new THREE.WebGLRenderer({alpha: true, antialias: true, powerPreference: "high-performance"});
 
 // default camera setup
 camera.position.set(2.5, 2.5, 2.5);
@@ -21,9 +22,22 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 0.7; // lower = darker overall
 renderer.outputEncoding = THREE.sRGBEncoding;
 
-// render at 2x-3x resolution even on normal screens (supersampling) for smoother edges
-// renderer.domElement -> canvas element
-renderer.setPixelRatio(Math.min(Math.max(window.devicePixelRatio, 2), 3));
+// a still image is rendered at 2x-3x resolution even on normal screens (supersampling) for smoother edges.
+// while the camera or an animation moves, the screen's own resolution is used instead, which is several times
+// cheaper; the loop in viewer.js switches back once things settle
+export const SETTLED_PIXEL_RATIO = Math.min(Math.max(window.devicePixelRatio, 2), 3);
+export const MOVING_PIXEL_RATIO = Math.min(Math.max(window.devicePixelRatio, 1), SETTLED_PIXEL_RATIO);
+renderer.setPixelRatio(SETTLED_PIXEL_RATIO);
+
+// frames are drawn on demand (see viewer.js). anything that changes the picture outside of user input
+// (a finished load, an hdri, a resize) calls requestRender
+let renderRequested = true;
+export function requestRender(){ renderRequested = true; }
+export function takeRenderRequest(){
+    const requested = renderRequested;
+    renderRequested = false;
+    return requested;
+}
 renderer.setSize(width, height);
 document.body.appendChild(renderer.domElement);
 
@@ -32,6 +46,7 @@ window.addEventListener("resize", () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
+    requestRender();
 });
 
 // directional light. the hdri does most of the lighting, this adds a key light on top of it.
@@ -68,16 +83,25 @@ let sunAzimuth = Math.PI/4;                          // (before turning)
 let envRotation = 0;                                 // radians, from the sun angle slider
 let updatePending = false;
 
-// shrinks the hdri to ENV_WIDTH and finds the direction of its brightest light
+// every hdri is scaled so its average brightness (over the sphere) is this value. hdris are captured at very
+// different exposures, so without this switching presets swings the model from dim to blown out and the
+// exposure slider has to be fixed each time. 0.8 is about where the bundled studio presets sit already
+const ENV_TARGET_MEAN = 0.8;
+// how far a single hdri may be pushed either way (a night sky should stay dark, a sun-only map should not explode)
+const ENV_MAX_GAIN = 2.5;
+
+// shrinks the hdri to ENV_WIDTH, evens out its brightness and finds the direction of its brightest light
 function prepareEnvironment(texture){
     const {data, width, height} = texture.image;
     const f = Math.max(1, Math.floor(width / ENV_WIDTH));
     const w = Math.floor(width / f);
     const h = Math.floor(height / f);
     const out = new Uint16Array(w * h * 4);
+    const pixels = new Float32Array(w * h * 3); // averaged linear rgb, before the brightness gain
     const luminance = new Float32Array(w * h);
     const area = f * f;
     let brightest = 0;
+    let weightedSum = 0, weightTotal = 0; // average luminance, each row weighted by the area it covers
     for(let y = 0; y < h; y++){
         for(let x = 0; x < w; x++){
             let r = 0, g = 0, b = 0;
@@ -90,14 +114,25 @@ function prepareEnvironment(texture){
                 }
             }
             r /= area; g /= area; b /= area;
-            const o = (y * w + x) * 4;
-            out[o] = THREE.DataUtils.toHalfFloat(Math.min(r, 65504));
-            out[o + 1] = THREE.DataUtils.toHalfFloat(Math.min(g, 65504));
-            out[o + 2] = THREE.DataUtils.toHalfFloat(Math.min(b, 65504));
-            out[o + 3] = 15360; // alpha 1.0
-            luminance[y * w + x] = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-            if(luminance[y * w + x] > brightest) brightest = luminance[y * w + x];
+            const p = (y * w + x) * 3;
+            pixels[p] = r; pixels[p + 1] = g; pixels[p + 2] = b;
+            const l = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+            luminance[y * w + x] = l;
+            if(l > brightest) brightest = l;
+            const rowWeight = Math.cos((0.5 - (y + 0.5) / h) * Math.PI);
+            weightedSum += l * rowWeight;
+            weightTotal += rowWeight;
         }
+    }
+
+    const mean = weightTotal > 0 ? weightedSum / weightTotal : 0;
+    const gain = mean > 0 ? THREE.MathUtils.clamp(ENV_TARGET_MEAN / mean, 1 / ENV_MAX_GAIN, ENV_MAX_GAIN) : 1;
+    for(let i = 0; i < w * h; i++){
+        const o = i * 4, p = i * 3;
+        out[o] = THREE.DataUtils.toHalfFloat(Math.min(pixels[p] * gain, 65504));
+        out[o + 1] = THREE.DataUtils.toHalfFloat(Math.min(pixels[p + 1] * gain, 65504));
+        out[o + 2] = THREE.DataUtils.toHalfFloat(Math.min(pixels[p + 2] * gain, 65504));
+        out[o + 3] = 15360; // alpha 1.0
     }
     envSource = {data: out, width: w, height: h};
 
@@ -160,6 +195,7 @@ function applyEnvironment(){
     envTexture = texture;
     scene.environment = texture;
     if(previous) previous.dispose();
+    requestRender();
 }
 
 // turn the lighting (hdri and key light together) around the model, in degrees. several calls in one frame cost one rebuild
@@ -183,6 +219,7 @@ function useFallbackEnvironment(){
     sunAzimuth = Math.PI/4;
     scene.environment = fallbackEnvironment;
     updateSun();
+    requestRender();
 }
 
 // swap the hdri used for lighting + reflections (url can be a /hdri/ path or a blob: url from an upload,
@@ -197,21 +234,27 @@ export function setEnvironment(url, revoke = false){
         console.error(error);
         if(revoke) URL.revokeObjectURL(url);
         if(!scene.environment) useFallbackEnvironment();
-        showToast(revoke ? "could not read that HDRI file" : "could not load that HDRI, keeping the current lighting", {error: true});
+        showToast(revoke ? "Could not read that HDRI file" : "Could not load that HDRI, keeping the current lighting", {error: true});
     });
 }
-setEnvironment("/hdri/hdri_1.hdr");
+// the first preset in the Lighting dropdown (templates/index.html)
+export const DEFAULT_HDRI = "studio_small_09_2k.hdr";
+setEnvironment(`/hdri/${DEFAULT_HDRI}`);
 
 // scene grid setup (12 units wide, 24 cells); sits just under y=0 so it doesn't z-fight with the model's base
 const size = 12;
 const divisions = 24;
-export const gridHelper = new THREE.GridHelper(size, divisions, 0x3344aa, 0x888888);
+export const gridHelper = new THREE.GridHelper(size, divisions, 0xaaaaaa, 0x888888);
 gridHelper.material.transparent = true;
+// the grid is a guide, not part of the lit scene: exposure and tone mapping leave it alone
+gridHelper.material.toneMapped = false;
 gridHelper.material.opacity = 0.5;
 gridHelper.position.y = -0.01;
 scene.add(gridHelper);
 
-// the grid lines are mid grey, which suits a dark background; on a light one they are darkened
+// grey lines that read on either stage: lighter on the dark one, darker on the light one
 export function setGridTheme(dark){
-    gridHelper.material.color.setHex(dark ? 0xffffff : 0x555555);
+    gridHelper.material.color.setHex(dark ? 0xaaaaaa : 0x3c3c3c).convertSRGBToLinear();
+    requestRender();
 }
+setGridTheme(true);

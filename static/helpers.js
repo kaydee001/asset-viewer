@@ -2,6 +2,7 @@
 // they live in the scene, not in modelRoot, so loading a model never disposes them
 import * as THREE from './vendor/three/build/three.module.js';
 import { scene } from './scene.js';
+import { viewportLeft } from './layout.js';
 
 // --- bounding box ---
 // webgl lines are one pixel wide and a tight box lies right on the model's own edges, so the edges are
@@ -10,7 +11,10 @@ export const bboxHelper = new THREE.Group();
 bboxHelper.visible = false;
 scene.add(bboxHelper);
 
-const barMaterial = new THREE.MeshBasicMaterial({color: 0xffcc00, depthTest: false, transparent: true});
+// overlay colours are exact: no tone mapping or exposure, and the hex values are taken as sRGB
+// (three r150 would otherwise treat them as linear and the output encoding would wash them out)
+const overlayColor = (hex) => new THREE.Color(hex).convertSRGBToLinear();
+const barMaterial = new THREE.MeshBasicMaterial({color: overlayColor(0xffcc00), depthTest: false, transparent: true, toneMapped: false});
 const bars = [];
 for(let i = 0; i < 12; i++){
     const bar = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), barMaterial);
@@ -52,7 +56,7 @@ scene.add(axesHelper);
 function groundLine(width, depth, color){
     const line = new THREE.Mesh(
         new THREE.PlaneGeometry(width, depth),
-        new THREE.MeshBasicMaterial({color, transparent: true, opacity: 0.85, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2})
+        new THREE.MeshBasicMaterial({color: overlayColor(color), transparent: true, opacity: 0.85, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, toneMapped: false})
     );
     line.rotation.x = -Math.PI/2;
     line.position.y = 0.004;
@@ -79,13 +83,15 @@ function marker(color, letter){
     ctx.fill();
     if(letter){
         ctx.globalAlpha = 1;
-        ctx.fillStyle = "#1a1a1a";
+        ctx.fillStyle = "#161617";
         ctx.font = "bold 34px sans-serif";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.fillText(letter, 32, 34);
     }
-    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({map: new THREE.CanvasTexture(canvas), depthTest: false}));
+    const map = new THREE.CanvasTexture(canvas);
+    map.encoding = THREE.sRGBEncoding;
+    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({map, depthTest: false, toneMapped: false}));
     sprite.scale.setScalar(letter ? 0.5 : 0.32);
     sprite.renderOrder = 1;
     return sprite;
@@ -98,7 +104,7 @@ for(const [direction, color, letter] of [
 ]){
     const stick = new THREE.Mesh(
         new THREE.CylinderGeometry(0.035, 0.035, 1, 8),
-        new THREE.MeshBasicMaterial({color})
+        new THREE.MeshBasicMaterial({color: overlayColor(color), toneMapped: false})
     );
     stick.position.copy(direction).multiplyScalar(0.5);
     stick.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction);
@@ -122,8 +128,9 @@ export function renderGizmo(renderer, camera){
     renderer.autoClear = false;
     renderer.clearDepth();
     renderer.setScissorTest(true);
-    renderer.setViewport(GIZMO_MARGIN, GIZMO_MARGIN, GIZMO_SIZE, GIZMO_SIZE);
-    renderer.setScissor(GIZMO_MARGIN, GIZMO_MARGIN, GIZMO_SIZE, GIZMO_SIZE);
+    const x = viewportLeft + GIZMO_MARGIN;
+    renderer.setViewport(x, GIZMO_MARGIN, GIZMO_SIZE, GIZMO_SIZE);
+    renderer.setScissor(x, GIZMO_MARGIN, GIZMO_SIZE, GIZMO_SIZE);
     renderer.render(gizmoScene, gizmoCamera);
     renderer.setScissorTest(false);
     renderer.setViewport(viewport);
@@ -132,14 +139,26 @@ export function renderGizmo(renderer, camera){
 
 // --- shared ---
 let target = null;
+let boxStale = true; // the exact box walks every vertex, so it is only measured again when it can have changed
 
 // called by loader.js for every new model
 export function setBoundingTarget(object){
     target = object;
+    boxStale = true;
     updateHelpers();
 }
 
-// called every frame from viewer.js; the box follows animated models
-export function updateHelpers(){
-    if(bboxHelper.visible && target) fitBoundingBox(target);
+// the model moved without a clip playing (scrubbing the seek bar)
+export function invalidateBox(){
+    boxStale = true;
+}
+
+// called from viewer.js before each drawn frame. a still model keeps its box; a playing clip can move
+// the model, so then the box is measured every frame
+export function updateHelpers(animating = false){
+    if(animating) boxStale = true; // also while the box is hidden, so it is right when it is turned on
+    if(!bboxHelper.visible || !target) return;
+    if(!boxStale && !animating) return;
+    fitBoundingBox(target);
+    boxStale = false;
 }

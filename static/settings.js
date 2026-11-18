@@ -1,6 +1,6 @@
 // settings are remembered between launches (localStorage; works because main.py keeps the port fixed).
 // to remember a new setting: add it in saveSettings() and restore it in the block below.
-import { setEnvironment, gridHelper, projection } from './scene.js';
+import { setEnvironment, gridHelper, projection, DEFAULT_HDRI } from './scene.js';
 import { controls } from './controls.js';
 import { modelRoot } from './loader.js';
 import { applyViewMode } from './viewmodes.js';
@@ -12,9 +12,13 @@ import {
 } from './ui.js';
 
 const SETTINGS_KEY = "asset-viewer-settings";
+// bump when a saved value should not carry over. 2: new lighting presets with even brightness, so an exposure
+// saved for the old ones (often turned all the way up) is dropped once
+const SETTINGS_VERSION = 2;
 
 function saveSettings(){
     localStorage.setItem(SETTINGS_KEY, JSON.stringify({
+        version: SETTINGS_VERSION,
         dark: document.body.classList.contains("dark"),
         grid: gridHelper.visible,
         autoRotate: controls.autoRotate,
@@ -31,14 +35,17 @@ function saveSettings(){
     }));
 }
 
-// save after every change in the right panel (setTimeout lets the click handler flip its state first)
-const rightPanel = document.getElementById("right-panel");
-rightPanel.addEventListener("click", () => setTimeout(saveSettings));
-rightPanel.addEventListener("change", saveSettings);
+// save after every change in the scene panel (right) or the top bar (theme), setTimeout lets the click handler flip its state first
+for(const id of ["scene-panel", "commandbar"]){
+    const panel = document.getElementById(id);
+    panel.addEventListener("click", () => setTimeout(saveSettings));
+    panel.addEventListener("change", saveSettings);
+}
 
 // dark is the default, the saved values only change what differs from it
 let saved = {};
 try { saved = JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {}; } catch(error) {}
+if((saved.version || 1) < 2) delete saved.exposure;
 if(saved.dark === false) themeBtn.click();
 if(saved.grid === false) gridBtn.click();
 if(saved.autoRotate) rotateBtn.click();
@@ -46,7 +53,7 @@ if(saved.ortho) orthoBtn.click();
 if(saved.lock === false) bottomLockBtn.click();
 if(saved.hdri && hdriSelect.querySelector(`option[value="${saved.hdri}"]`)){
     hdriSelect.value = saved.hdri;
-    if(saved.hdri !== "hdri_1.hdr") setEnvironment(`/hdri/${saved.hdri}`);
+    if(saved.hdri !== DEFAULT_HDRI) setEnvironment(`/hdri/${saved.hdri}`);
 }
 if(saved.bbox) bboxBtn.click();
 if(saved.axes) axesBtn.click();
@@ -64,3 +71,6 @@ if(saved.shading && shadingSelect.querySelector(`option[value="${saved.shading}"
     shadingSelect.value = saved.shading;
     applyViewMode(modelRoot, saved.shading);
 }
+
+// settings from an older version: store them in the current form right away (drops the old exposure)
+if((saved.version || 1) < SETTINGS_VERSION) saveSettings();
