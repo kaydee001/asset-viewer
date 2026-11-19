@@ -4,6 +4,7 @@
 import { loadModel } from './loader.js';
 import { showToast, hideToast } from './toast.js';
 import { setWireframe, updateCameraSelect } from './ui.js';
+import { BACKEND } from './shell.js';
 
 export const MODEL_EXTENSIONS = ["gltf", "glb", "fbx", "obj", "stl", "ply", "3mf"];
 
@@ -94,11 +95,11 @@ openInput.addEventListener("change", (event)=>{
     openInput.value = "";
 });
 
-// a file passed on the command line (or "open with") is served by the local server
-fetch("/startup-files").then(r => r.json()).then(async function(items){
+// a file passed on the command line (or "open with") is served by the shell (shell.js)
+fetch(`${BACKEND}/startup-files`).then(r => r.json()).then(async function(items){
     if(!items.length) return;
     const files = await Promise.all(items.map(async function(item){
-        const blob = await (await fetch(item.url)).blob();
+        const blob = await (await fetch(BACKEND + item.url)).blob();
         return new File([blob], item.name);
     }));
     handleFiles(files);

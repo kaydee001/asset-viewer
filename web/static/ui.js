@@ -1,5 +1,5 @@
 // the view toggles and buttons: hdri, orbit switches, wireframe, shading, grid, theme, screenshot, reset.
-// the DOM ids used here are defined in templates/index.html. the other ui files build on this one:
+// the DOM ids used here are defined in web/index.html. the other ui files build on this one:
 //   shortcuts.js (keys), dragdrop.js (opening files), settings.js (remembering all of this)
 import {
     scene, camera, renderer, setEnvironment, setSunAngle, setGridTheme, gridHelper,
@@ -12,6 +12,7 @@ import * as THREE from './vendor/three/build/three.module.js';
 import { frameCamera, modelLoaded, currentObject, modelRoot, modelCameras } from './loader.js';
 import { showToast } from './toast.js';
 import { applyViewMode } from './viewmodes.js';
+import { hdriUrl } from './shell.js';
 
 // switches are plain buttons; the "active" class is what styles them as on
 function setLabel(btn, isOn){
@@ -22,7 +23,7 @@ function setLabel(btn, isOn){
 // select hdri (built-in presets listed in index.html)
 export const hdriSelect = document.getElementById("hdri-select");
 hdriSelect.addEventListener("change", (event)=>{
-    setEnvironment(`/hdri/${event.target.value}`);
+    setEnvironment(hdriUrl(event.target.value));
     document.getElementById("hdri-name").textContent = "";
 });
 

@@ -4,6 +4,7 @@ import * as THREE from './vendor/three/build/three.module.js';
 import { RGBELoader } from './vendor/three/addons/loaders/RGBELoader.js';
 import { RoomEnvironment } from './vendor/three/addons/environments/RoomEnvironment.js';
 import { showToast } from './toast.js';
+import { hdriUrl } from './shell.js';
 
 // canvas fills the whole window
 const width = window.innerWidth;
@@ -222,7 +223,7 @@ function useFallbackEnvironment(){
     requestRender();
 }
 
-// swap the hdri used for lighting + reflections (url can be a /hdri/ path or a blob: url from an upload,
+// swap the hdri used for lighting + reflections (url can be an hdriUrl() or a blob: url from an upload,
 // pass revoke = true for the latter so the blob is freed once it is read)
 export function setEnvironment(url, revoke = false){
     rgbeLoader.load(url, function(texture){
@@ -237,9 +238,9 @@ export function setEnvironment(url, revoke = false){
         showToast(revoke ? "Could not read that HDRI file" : "Could not load that HDRI, keeping the current lighting", {error: true});
     });
 }
-// the first preset in the Lighting dropdown (templates/index.html)
+// the first preset in the Lighting dropdown (web/index.html)
 export const DEFAULT_HDRI = "studio_small_09_2k.hdr";
-setEnvironment(`/hdri/${DEFAULT_HDRI}`);
+setEnvironment(hdriUrl(DEFAULT_HDRI));
 
 // scene grid setup (12 units wide, 24 cells); sits just under y=0 so it doesn't z-fight with the model's base
 const size = 12;

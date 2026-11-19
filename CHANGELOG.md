@@ -15,8 +15,11 @@
 - Cameras stored in glTF files can be selected
 - Tests (pytest) and a GitHub Actions workflow, sample models in `samples/`
 - Frame rate readout in the top right corner of the viewport while an animation plays
+- New desktop shell built on Tauri 2 (`src-tauri/`): the page runs in the system's WebView2 (current Chromium) instead of QtWebEngine's Chromium 83, the exe is about 4 MB with the page embedded, an NSIS installer adds the app to "Open with" for the model types, and the title bar follows the light/dark theme without polling. The PyQt5 + Flask shell still works alongside it for now
 
 ### Changed
+- The page moved from `templates/` and `static/` to `web/`, so both shells can serve it unchanged
+- Saved settings start fresh once in the Tauri build: its storage is separate from the Python shell's
 - New interface: the stats and parts list and the settings are docked side panels instead of floating glass cards; the model sits on a neutral grey stage so its colours read true
 - One amber accent for the selection, the play button and the seek bar; switches and checkboxes are neutral
 - The model info is a spec sheet: format and file size, counts as figures, and the dimensions per axis lettered in the gizmo's X / Y / Z colours
@@ -37,6 +40,7 @@
 
 
 ### Fixed
+- No white flash when the Tauri window opens: it stays hidden until the page has drawn its first frame
 - Flickering surfaces in orthographic view: the near and far planes now follow the far-away orthographic camera
 - Grid, axes, gizmo and bounding box keep their exact colours instead of being tone mapped and washed out by the lighting and exposure
 - The light angle slider turns the HDRI lighting and the key light together; the key light is aimed from the HDRI's brightest region

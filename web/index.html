@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Asset Viewer</title>
     <link rel="icon" href="data:,">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="/static/style.css">
 </head>
 <!-- single page; all behaviour is in static/*.js, entry point is viewer.js -->
 <body class="dark">
@@ -169,6 +169,6 @@
         </div>
     </div>
 
-    <script type="module" src="{{ url_for('static', filename='viewer.js') }}"></script>
+    <script type="module" src="/static/viewer.js"></script>
 </body>
 </html>

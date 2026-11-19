@@ -7,7 +7,7 @@ read in the browser.
 from flask import Flask, abort, jsonify, render_template, send_file, send_from_directory
 import os
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder="web", static_folder="web/static")
 
 # always revalidate static files so an updated app never shows stale scripts
 app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0

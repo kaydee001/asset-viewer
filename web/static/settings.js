@@ -1,10 +1,11 @@
-// settings are remembered between launches (localStorage; works because main.py keeps the port fixed).
+// settings are remembered between launches (localStorage; main.py keeps the port fixed and the Tauri shell keeps its origin, so it survives restarts).
 // to remember a new setting: add it in saveSettings() and restore it in the block below.
 import { setEnvironment, gridHelper, projection, DEFAULT_HDRI } from './scene.js';
 import { controls } from './controls.js';
 import { modelRoot } from './loader.js';
 import { applyViewMode } from './viewmodes.js';
 import { bboxHelper, axesHelper } from './helpers.js';
+import { hdriUrl } from './shell.js';
 import {
     hdriSelect, shadingSelect, themeBtn, gridBtn, rotateBtn, orthoBtn, bottomLockBtn, bboxBtn, axesBtn,
     sunRange, setSunAngle, exposureRange, setExposure,
@@ -53,7 +54,7 @@ if(saved.ortho) orthoBtn.click();
 if(saved.lock === false) bottomLockBtn.click();
 if(saved.hdri && hdriSelect.querySelector(`option[value="${saved.hdri}"]`)){
     hdriSelect.value = saved.hdri;
-    if(saved.hdri !== DEFAULT_HDRI) setEnvironment(`/hdri/${saved.hdri}`);
+    if(saved.hdri !== DEFAULT_HDRI) setEnvironment(hdriUrl(saved.hdri));
 }
 if(saved.bbox) bboxBtn.click();
 if(saved.axes) axesBtn.click();

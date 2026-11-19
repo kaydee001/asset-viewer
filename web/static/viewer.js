@@ -1,4 +1,4 @@
-// entry point (loaded by templates/index.html): imports every module, then runs the render loop
+// entry point (loaded by web/index.html): imports every module, then runs the render loop
 import { scene, camera, renderer, projection, requestRender, takeRenderRequest, SETTLED_PIXEL_RATIO, MOVING_PIXEL_RATIO } from './scene.js';
 import * as THREE from './vendor/three/build/three.module.js';
 import { controls } from './controls.js';
@@ -14,8 +14,8 @@ import './dragdrop.js';
 import './dropdown.js';
 import './settings.js';
 
-// handle for debugging from the dev tools console: add ?debug to the url
-if(location.search.includes("debug")) window.viewer = { scene, camera, renderer, controls, modelRoot };
+// handle for debugging from the dev tools console: add ?debug to the url, or start the app with --debug
+if(location.search.includes("debug") || window.__AV_DEBUG__) window.viewer = { scene, camera, renderer, controls, modelRoot };
 
 // any input can change the picture (a toggle, a slider, a key, a dropped file), so it asks for a frame.
 // capture phase, so it runs even when a handler stops the event

@@ -29,26 +29,42 @@ Grab the latest build from the [releases page](../../releases). No Python requir
 
 ## Run from source
 
-Requires Python 3 on Windows (the UI is styled for Windows 11).
+The app is moving from a Python shell (PyQt5 + Flask) to [Tauri](https://tauri.app). Both run the same page in `web/` for now; the Python shell will be removed once the Tauri one is confirmed to do everything it did.
+
+### Tauri (Windows 10/11)
+
+Requires [Rust](https://rustup.rs), the Visual Studio C++ Build Tools and Node.js. The page runs in the system's WebView2, which comes with Windows 11.
+
+```bash
+npm install
+npm run dev
+```
+
+Arguments for the app go after three `--`, and paths must be absolute because the app is started from `src-tauri/`. The `samples/` folder has a few tiny models to try it with, for example `npm run dev -- -- -- D:/code/asset-viewer/samples/cube.glb --debug`. The built exe takes them directly: `asset-viewer.exe [model.glb] [--debug]`.
+
+- Pass a model path to open it on startup. Neighbouring `.bin`, `.mtl` and texture files in the same folder are loaded with it.
+- `--debug` opens the dev tools and exposes `window.viewer` (scene, camera, renderer, controls) in the console.
+
+### Python (old shell)
+
+Requires Python 3 on Windows. It runs on QtWebEngine's Chromium 83.
 
 ```bash
 pip install -r requirements.txt
 python main.py [model.glb] [--debug]
 ```
 
-The `samples/` folder has a few tiny models to try it with, for example `python main.py samples/cube.glb`.
-
-- Pass a model path to open it on startup. Neighbouring `.bin`, `.mtl` and texture files in the same folder are loaded with it.
-- `--debug` opens the Chromium dev tools port, so you can inspect the app at http://localhost:9222. It also exposes `window.viewer` (scene, camera, renderer, controls) in the console.
+Here `--debug` opens the Chromium dev tools port instead, so you can inspect the app at http://localhost:9222.
 
 ### HDRIs
 
-HDRI files are not committed. The presets are 2k `.hdr` files from [Poly Haven](https://polyhaven.com/hdris) (CC0): `studio_small_09`, `brown_photostudio_02`, `photo_studio_loft_hall`, `empty_warehouse_01`, `kloofendal_overcast_puresky` and `venice_sunset`, saved in `hdri/` as for example `studio_small_09_2k.hdr` (the names match the Lighting dropdown in `templates/index.html`). Without them, built-in room lighting is used.
+HDRI files are not committed. The presets are 2k `.hdr` files from [Poly Haven](https://polyhaven.com/hdris) (CC0): `studio_small_09`, `brown_photostudio_02`, `photo_studio_loft_hall`, `empty_warehouse_01`, `kloofendal_overcast_puresky` and `venice_sunset`, saved in `hdri/` as for example `studio_small_09_2k.hdr` (the names match the Lighting dropdown in `web/index.html`). Without them, built-in room lighting is used.
 
 ### Tests
 
 ```bash
-pip install -r requirements-dev.txt
+cargo test --manifest-path src-tauri/Cargo.toml   # Tauri shell
+pip install -r requirements-dev.txt               # Python shell
 python -m pytest
 ```
 
@@ -71,16 +87,22 @@ python -m pytest
 ## Build the exe
 
 ```bash
-pyinstaller --noconfirm --onedir --windowed --name "asset-viewer" --add-data "templates;templates" --add-data "static;static" --add-data "hdri;hdri" main.py
+npm run build
 ```
 
-The output ends up in `dist/asset-viewer/`. PyInstaller comes from `requirements-dev.txt`.
+This builds `src-tauri/target/release/asset-viewer.exe` (the page is embedded in it) and an installer in `src-tauri/target/release/bundle/nsis/`. The installer puts the `hdri/` folder next to the exe and sets up file associations for the model types (it adds the app to "Open with"; the default app the user chose for each type stays).
+
+The old Python build still works:
+
+```bash
+pyinstaller --noconfirm --onedir --windowed --name "asset-viewer" --add-data "web;web" --add-data "hdri;hdri" main.py
+```
 
 ## How it works
 
-`main.py` starts a small Flask server on a background thread and opens it in a PyQt5 window (an embedded Chromium). The server only hands out the page, the static files, the HDRIs and any model passed on the command line. Everything else happens in the browser: dropped files are read locally and parsed by three.js, and nothing leaves your machine.
+The Tauri shell (`src-tauri/`) embeds the page from `web/` in the exe and shows it in a WebView2 window. A small `av` protocol (`protocol.rs`, reached by the page at `http://av.localhost`) hands out only the HDRIs and any model passed on the command line. Everything else happens in the page: dropped files are read locally and parsed by three.js, and nothing leaves your machine. `web/static/shell.js` is the only script that knows which shell it runs in.
 
-The Qt WebEngine that ships with PyQt5 is an old Chromium (83), so there is no CSS `gap` on flexbox and no `:has()`. Keep that in mind when editing the CSS.
+Under the Python shell, `main.py` starts a small Flask server (`server.py`) that serves the same things, and shows it in a PyQt5 window. Its Chromium is version 83, so while that shell is still around there is no CSS `gap` on flexbox and no `:has()`. Keep that in mind when editing the CSS.
 
 The light angle slider turns the lighting around the model. The bundled three.js version can't rotate an HDRI, so the app keeps a 1024 px wide copy of it and shifts the image sideways; the key light is aimed from the brightest part of the HDRI and turns with it. The orthographic switch is the same perspective camera with a 1 degree field of view, moved far back.
 
@@ -94,12 +116,19 @@ When you drop a file:
 ## Project structure
 
 ```
-main.py                 Qt window, picks a port, finds the sidecar files for a model given on the command line
-server.py               Flask routes: page, /hdri/*, /startup-files
-templates/index.html    the whole page; the JS looks up elements by the ids in here
+src-tauri/
+  src/main.rs           Tauri window, --debug, registers the av protocol
+  src/startup.rs        finds the sidecar files for a model given on the command line (with tests)
+  src/protocol.rs       av protocol: /hdri/*, /startup-files (with tests)
+  tauri.conf.json       window, bundle, file associations, bundled hdri/ folder
+  capabilities/         what the page may ask of the window (theme, title)
+main.py                 old shell: Qt window, picks a port, finds the sidecar files
+server.py               old shell: Flask routes for the page, /hdri/*, /startup-files
 samples/                tiny test models (cube.glb with animation and a camera, pyramid.stl, triangle.ply, tetra.3mf)
-tests/                  pytest tests for the server and the command line handling
-static/
+tests/                  pytest tests for the Python shell
+web/index.html          the whole page; the JS looks up elements by the ids in here
+web/static/
+  shell.js              which shell the page runs in: where startup files and HDRIs come from, title bar theme
   viewer.js             entry point, imports everything and runs the render loop
   scene.js              scene, camera, renderer, lights, grid, HDRI loading and rotation
   controls.js           orbit controls and their limits
@@ -125,16 +154,15 @@ See [CHANGELOG.md](CHANGELOG.md) for what changed between versions.
 - **New shortcut or toggle:** add the button in `index.html`, wire up its click in `ui.js`, and add the key to the `shortcuts` object in `shortcuts.js`.
 - **New shading mode:** add an `<option>` in `index.html` and a material to the `overrides` object in `viewmodes.js`.
 - **New HDRI preset:** add an `<option>` in `index.html` whose value is the file name in `hdri/`.
-- **New file format:** add its loader in `loader.js`, and add the extension to `MODEL_EXTENSIONS` in both `dragdrop.js` and `main.py`.
+- **New file format:** add its loader in `loader.js`, and add the extension to `MODEL_EXTENSIONS` in `dragdrop.js`, `src-tauri/src/startup.rs` and `main.py`, and to `fileAssociations` in `tauri.conf.json`.
 - **New saved setting:** add it to `saveSettings()` in `settings.js`, and restore it further down in the same file.
 
 ## Tech stack
 
 - [three.js](https://threejs.org) for 3D rendering
-- [Flask](https://flask.palletsprojects.com) as the local server
-- [PyQt5](https://riverbankcomputing.com/software/pyqt/) with QtWebEngine as the desktop wrapper
-- [PyInstaller](https://pyinstaller.org) for exe packaging
+- [Tauri](https://tauri.app) 2 as the desktop wrapper (WebView2)
+- Old shell: [Flask](https://flask.palletsprojects.com), [PyQt5](https://riverbankcomputing.com/software/pyqt/) with QtWebEngine, [PyInstaller](https://pyinstaller.org)
 
 ## License
 
-Released under the [MIT License](LICENSE). three.js is also MIT licensed, and its license is in `static/vendor/three/LICENSE`.
+Released under the [MIT License](LICENSE). three.js is also MIT licensed, and its license is in `web/static/vendor/three/LICENSE`.

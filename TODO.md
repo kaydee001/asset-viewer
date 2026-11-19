@@ -1,13 +1,14 @@
 # To do
 
-## Move the desktop shell to Tauri
-Replace PyQt5 + QtWebEngine (Chromium 83) and the Flask server with [Tauri](https://tauri.app). The page, three.js and the UI stay as they are.
+## Finish the move to Tauri
+The Tauri shell (`src-tauri/`) runs the page and serves the startup files and HDRIs. Saved settings start fresh once (accepted). Still to do:
 
-- Runs on the system WebView2 (current Chromium, updated by Windows): no more Chromium 83 limits (flex `gap`, `:focus-visible`, `:is()`, native `<select>` styling, WebGPU)
-- Installer around 10 MB instead of a bundled Chromium, faster start, less memory
-- Command line open, the startup file list and HDRI serving move from `server.py` / `main.py` to Tauri commands or its asset protocol
+- Check by hand: a Draco / KTX2 compressed GLB, and an STL from Explorer. (Checked: drag and drop of files and folders, "Open with" for GLB / GLTF / FBX / OBJ; the installer leaves the user's default app for each type alone)
+- Installer is 24 MB, 20 of it the six 2k HDRIs: ship 1k ones or download the extra presets on first use if size matters
+- Screenshot (hidden for now): WebView2 saves it straight to Downloads; the Python shell asked where. Add a save dialog (the `on_download` hook) before the button comes back
+- Then remove the Python shell: `main.py`, `server.py`, `tests/`, the requirements files, the pytest CI job, and the `BACKEND = ""` branch in `web/static/shell.js`
+- Once Chromium 83 is gone, the CSS can use flex `gap`, `:focus-visible`, `:is()` and `:has()`
 - Later: heavy work in Rust (folder scanning, parsing very large files, thumbnails, batch / headless renders)
-- Check that saved settings (localStorage) carry over or are migrated
 
 ## Upgrade three.js
 The vendored build is r150.
