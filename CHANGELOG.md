@@ -24,7 +24,7 @@
 - One amber accent for the selection, the play button and the seek bar; switches and checkboxes are neutral
 - The model info is a spec sheet: format and file size, counts as figures, and the dimensions per axis lettered in the gizmo's X / Y / Z colours
 - Lucide line icons at one size, sentence case labels and messages, mono tabular figures, readable texture slot names in the material info
-- The axes gizmo sits in the corner of the viewport, next to the left panel; the grid's centre line is neutral grey
+- The axes gizmo is a navigation gizmo in the top right corner, always shown (not only with the axes overlay): hovering highlights it, and clicking an axis ball turns the view to look along that axis, as in Blender. The grid's centre line is neutral grey
 - Keyboard focus rings show only while navigating with the keyboard
 - Frames are drawn only when something changes (camera, a playing clip, a setting, a load) instead of every frame, so an idle viewer leaves the GPU alone
 - While the camera or a clip moves the view renders at screen resolution; the 2x-3x supersampled frame follows once it settles
@@ -40,6 +40,8 @@
 
 
 ### Fixed
+- The grid and wireframe no longer brighten while the camera moves and dim when it stops: both are drawn by shaders with a line width in screen pixels, so they look the same in the 1x frame drawn while moving and the supersampled still frame, and their lines are antialiased
+- Wireframe is one flat colour whatever the shading mode (light grey on the dark theme, dark grey on the light one); the shading mode comes back when it is turned off
 - No white flash when the Tauri window opens: it stays hidden until the page has drawn its first frame
 - Flickering surfaces in orthographic view: the near and far planes now follow the far-away orthographic camera
 - Grid, axes, gizmo and bounding box keep their exact colours instead of being tone mapped and washed out by the lighting and exposure

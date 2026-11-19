@@ -68,7 +68,8 @@ export function frameCamera(object, box = new THREE.Box3().setFromObject(object,
 // free gpu memory held by a removed object
 function disposeObject(object){
     object.traverse(function(obj){
-        if(obj.geometry) obj.geometry.dispose();
+        // the wireframe's copy of the geometry too (viewmodes.js), if one was made
+        new Set([obj.geometry, obj.userData.solidGeometry, obj.userData.wireGeometry]).forEach(g => g && g.dispose());
         if(!obj.material) return;
         // a debug view may be active, dispose the model's own materials, not the shared override
         const source = obj.userData.originalMaterial || obj.material;

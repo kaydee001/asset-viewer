@@ -242,20 +242,89 @@ export function setEnvironment(url, revoke = false){
 export const DEFAULT_HDRI = "studio_small_09_2k.hdr";
 setEnvironment(hdriUrl(DEFAULT_HDRI));
 
-// scene grid setup (12 units wide, 24 cells); sits just under y=0 so it doesn't z-fight with the model's base
+// scene grid (12 units wide, 24 cells); sits just under y=0 so it doesn't z-fight with the model's base.
+// drawn by a shader on a plane rather than with GL lines: a GL line is one device pixel wide, so it looked
+// thinner and dimmer in the supersampled still frame than in the 1x frame drawn while moving (viewer.js).
+// here the width is in CSS pixels and scaled by the current pixel ratio, so the grid looks the same at any
+// resolution (screenshots included), with antialiased lines. the wireframe (viewmodes.js) works the same way
+
+// device pixels per CSS pixel of the frame being drawn: the supersampled still frame, the 1x frame while
+// moving, or a screenshot. a uniform shared by the grid and the wireframe, set before every draw
+export const pixelRatioUniform = {value: 1};
+scene.onBeforeRender = (renderer)=>{ pixelRatioUniform.value = renderer.getPixelRatio(); };
+
 const size = 12;
 const divisions = 24;
-export const gridHelper = new THREE.GridHelper(size, divisions, 0xaaaaaa, 0x888888);
-gridHelper.material.transparent = true;
-// the grid is a guide, not part of the lit scene: exposure and tone mapping leave it alone
-gridHelper.material.toneMapped = false;
-gridHelper.material.opacity = 0.5;
+const gridMaterial = new THREE.ShaderMaterial({
+    uniforms: {
+        color: {value: new THREE.Color()},
+        opacity: {value: 0.5},
+        cell: {value: size / divisions},
+        halfSize: {value: size / 2},
+        lineWidth: {value: 1},  // CSS pixels
+        pixelRatio: pixelRatioUniform
+    },
+    vertexShader: /* glsl */`
+        varying vec2 vPos;
+        void main(){
+            vPos = position.xz;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+    `,
+    fragmentShader: /* glsl */`
+        uniform vec3 color;
+        uniform float opacity;
+        uniform float cell;
+        uniform float halfSize;
+        uniform float lineWidth;
+        uniform float pixelRatio;
+        varying vec2 vPos;
+
+        // coverage (0..1) of lines every 'spacing' units, 'width' device pixels wide, at this fragment
+        float lines(vec2 coord, float width){
+            vec2 perPixel = fwidth(coord);
+            vec2 distance = abs(fract(coord - 0.5) - 0.5) / perPixel;  // to the nearest line, in device pixels
+            vec2 cover = clamp(width * 0.5 + 0.5 - distance, 0.0, 1.0);
+            return max(cover.x, cover.y);
+        }
+
+        void main(){
+            float width = lineWidth * pixelRatio;
+            vec2 coord = vPos / cell;
+            // stop at the outer lines, keeping their full width
+            vec2 edge = (abs(vPos) - halfSize) / fwidth(vPos);
+            if(max(edge.x, edge.y) > width * 0.5 + 0.5) discard;
+
+            float grid = lines(coord, width);
+            // the two centre lines are a little brighter, as in three's GridHelper
+            vec2 centre = clamp(width * 0.5 + 0.5 - abs(vPos) / fwidth(vPos), 0.0, 1.0);
+            float strength = max(grid * 0.8, max(centre.x, centre.y));
+
+            // towards the horizon the cells shrink to a few pixels and the lines would shimmer: fade them out
+            vec2 cellPixels = 1.0 / fwidth(coord);
+            float fade = smoothstep(2.0, 6.0, min(cellPixels.x, cellPixels.y) / pixelRatio);
+
+            float alpha = strength * fade * opacity;
+            if(alpha <= 0.0) discard;
+            gl_FragColor = vec4(color, alpha);
+            #include <encodings_fragment>
+        }
+    `,
+    transparent: true,
+    depthWrite: false,
+    // the grid is a guide, not part of the lit scene: exposure and tone mapping leave it alone
+    toneMapped: false,
+    extensions: {derivatives: true}
+});
+// a little larger than the grid so the outer lines are not cut in half
+const gridPlane = new THREE.PlaneGeometry(size + 1, size + 1).rotateX(-Math.PI / 2);
+export const gridHelper = new THREE.Mesh(gridPlane, gridMaterial);
 gridHelper.position.y = -0.01;
 scene.add(gridHelper);
 
 // grey lines that read on either stage: lighter on the dark one, darker on the light one
 export function setGridTheme(dark){
-    gridHelper.material.color.setHex(dark ? 0xaaaaaa : 0x3c3c3c).convertSRGBToLinear();
+    gridMaterial.uniforms.color.value.setHex(dark ? 0xaaaaaa : 0x3c3c3c).convertSRGBToLinear();
     requestRender();
 }
 setGridTheme(true);

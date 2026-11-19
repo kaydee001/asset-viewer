@@ -17,3 +17,4 @@ The vendored build is r150.
 - Environment maps can be rotated natively (`scene.environmentRotation`), which can replace the manual HDRI shifting in `scene.js`
 - Try the WebGPU renderer once the shell runs on a current Chromium
 - Re-vendor the loaders and decoders (Draco, Basis / KTX2, meshopt) at the same version
+- The wireframe material (`viewmodes.js`) patches MeshBasicMaterial's shader at `#include <output_fragment>`, and the grid (`scene.js`) uses `#include <encodings_fragment>`. Both chunks were renamed in r154 (`opaque_fragment`, `colorspace_fragment`)

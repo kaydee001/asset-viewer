@@ -7,11 +7,11 @@ import {
 } from './scene.js';
 import { updateViewOffset } from './layout.js';
 import { bboxHelper, axesHelper } from './helpers.js';
-import { controls } from './controls.js';
+import { controls, stopMotion } from './controls.js';
 import * as THREE from './vendor/three/build/three.module.js';
 import { frameCamera, modelLoaded, currentObject, modelRoot, modelCameras } from './loader.js';
 import { showToast } from './toast.js';
-import { applyViewMode } from './viewmodes.js';
+import { applyViewMode, setWireframeTheme } from './viewmodes.js';
 import { hdriUrl } from './shell.js';
 
 // switches are plain buttons; the "active" class is what styles them as on
@@ -86,18 +86,6 @@ rotateBtn.addEventListener("click", ()=>{
     if(!controls.autoRotate) stopMotion();
 })
 
-// damping keeps the camera drifting for a moment after the input stops. update() with damping off drops
-// that leftover motion, and putting the camera back where it was means it does not jump either
-function stopMotion(){
-    const position = camera.position.clone();
-    const target = controls.target.clone();
-    controls.enableDamping = false;
-    controls.update();
-    controls.enableDamping = true;
-    camera.position.copy(position);
-    controls.target.copy(target);
-    controls.update();
-}
 controls.autoRotateSpeed = 5.0;
 
 // toggle wireframe mode (also reset to off by dragdrop.js whenever a new model loads)
@@ -105,14 +93,8 @@ export const wireframeBtn = document.getElementById("wireframe-btn");
 let wireframeOn = false;
 export function setWireframe(value){
     wireframeOn = value;
-    modelRoot.traverse(function(obj){
-        if(!obj.isMesh) return;
-        // set it on the model's own materials as well as whatever debug view is showing
-        [obj.material, obj.userData.originalMaterial].filter(Boolean).forEach(function(source){
-            const mats = Array.isArray(source) ? source : [source];
-            mats.forEach(m => m.wireframe = wireframeOn);
-        });
-    });
+    // the shading mode is kept and comes back when wireframe is turned off (viewmodes.js)
+    applyViewMode(modelRoot, undefined, wireframeOn);
     setLabel(wireframeBtn, wireframeOn);
 }
 wireframeBtn.addEventListener("click", () => setWireframe(!wireframeOn));
@@ -121,7 +103,6 @@ wireframeBtn.addEventListener("click", () => setWireframe(!wireframeOn));
 export const shadingSelect = document.getElementById("shading-select");
 shadingSelect.addEventListener("change", ()=>{
     applyViewMode(modelRoot, shadingSelect.value);
-    setWireframe(wireframeOn);
 });
 
 // toggle scene grid
@@ -148,6 +129,7 @@ themeBtn.addEventListener("click", ()=>{
     const dark = document.body.classList.contains("dark");
     setLabel(themeBtn, dark);
     setGridTheme(dark);
+    setWireframeTheme(dark);
 });
 
 // save the current view as a png. transparent by default; the scale option renders at a higher

@@ -15,7 +15,8 @@ A lightweight 3D model viewer that runs locally. Drop in a GLB, GLTF, FBX, OBJ, 
 - Parts tree with per-mesh triangle counts and show/hide, plus a material and texture readout
 - Mesh stats: objects, materials, vertices, faces, triangles, dimensions and file size
 - HDRI lighting with built-in presets and custom upload, light angle and exposure controls
-- Bounding box and axes overlays (ground axis lines plus a corner gizmo)
+- Bounding box and axes overlays (axis lines on the ground)
+- Navigation gizmo in the top right corner, as in Blender: click an axis to look along it
 - Cameras stored in glTF files can be selected
 - Orbit controls (right mouse button or shift + left drag pans) with auto rotate and bottom lock, and an orthographic / perspective switch
 - Wireframe, grid, light/dark theme and PNG screenshot (up to 4x resolution, with or without background)
@@ -137,7 +138,7 @@ web/static/
   viewmodes.js          shading modes, done by swapping materials
   outliner.js           the parts tree on the left and the material readout
   animation.js          animation clip picker, scrubber, speed, loop, play/pause
-  helpers.js            bounding box and axes overlays
+  helpers.js            bounding box and axes overlays, the navigation gizmo
   toast.js              status messages and the loading bar
   ui.js                 the view buttons and sliders (wireframe, grid, theme, light angle, projection, screenshot...)
   shortcuts.js          keyboard shortcuts and tooltips
