@@ -14,6 +14,7 @@
 - Parts list is now the node tree; click a mesh to see its materials and textures
 - Cameras stored in glTF files can be selected
 - Tests (pytest) and a GitHub Actions workflow, sample models in `samples/`
+- Frame rate readout in the top right corner of the viewport while an animation plays
 
 ### Changed
 - New interface: the stats and parts list and the settings are docked side panels instead of floating glass cards; the model sits on a neutral grey stage so its colours read true

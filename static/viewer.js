@@ -5,6 +5,7 @@ import { controls } from './controls.js';
 import { updateAnimation } from './animation.js';
 import { modelRoot } from './loader.js';
 import { updateHelpers, renderGizmo } from './helpers.js';
+import { countFrame } from './fps.js';
 // imported only for their side effects, they wire up the page. settings.js goes last so it can restore saved state
 import './layout.js';
 import './ui.js';
@@ -81,11 +82,13 @@ function animate(now){
     const ratioChanged = renderer.getPixelRatio() !== ratio;
     if(ratioChanged) renderer.setPixelRatio(ratio);
 
-    if(!(animating || cameraMoved || requested || ratioChanged || now - lastFrame > IDLE_REFRESH_MS)) return;
+    const needed = animating || cameraMoved || requested || ratioChanged;
+    if(!needed && now - lastFrame <= IDLE_REFRESH_MS) return;
     lastFrame = now;
     updateHelpers(animating);
     updateClipPlanes();
     renderer.render(scene, camera);
     renderGizmo(renderer, camera);
+    countFrame(animating); // the frame rate is only measured (and shown) while a clip plays
 }
 requestAnimationFrame(animate);
