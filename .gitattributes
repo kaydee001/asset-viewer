@@ -1,0 +1,2 @@
+# text files are stored and checked out with LF line endings on every machine, whatever core.autocrlf says
+* text=auto eol=lf
