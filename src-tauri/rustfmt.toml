@@ -1,0 +1,3 @@
+# the code is written to 120 columns, with chains and calls filling the width before they wrap
+max_width = 120
+use_small_heuristics = "Max"

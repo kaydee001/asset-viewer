@@ -4,11 +4,16 @@ on: [push, pull_request]
 
 jobs:
   tauri:
-    # the Tauri shell (src-tauri/); windows runners come with Rust, the MSVC build tools and WebView2
+    # the Tauri shell (src-tauri/); windows runners come with Rust (rustfmt, clippy), the MSVC build tools and WebView2
     runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: src-tauri
     steps:
       - uses: actions/checkout@v4
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
-      - run: cargo test --manifest-path src-tauri/Cargo.toml
+      - run: cargo fmt --check
+      - run: cargo clippy --all-targets -- -D warnings
+      - run: cargo test

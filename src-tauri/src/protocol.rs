@@ -4,7 +4,7 @@
 //! - /startup-files        JSON list of the startup files: [{"name": "car.glb", "url": "/startup-file/0"}]
 //! - /startup-file/<index> one of them, by index, so the page never sends a path of its own
 //! - /hdri/<name>          an HDRI map from the hdri folder bundled next to the exe; 404 if it is missing,
-//!                         and the page falls back to its built-in room lighting
+//!   and the page falls back to its built-in room lighting
 
 use percent_encoding::percent_decode_str;
 use std::path::{Path, PathBuf};
@@ -100,7 +100,13 @@ mod tests {
 
     #[test]
     fn hdri_cannot_escape_its_folder() {
-        for path in ["/hdri/", "/hdri/../src-tauri/Cargo.toml", "/hdri/..%2Fsrc-tauri%2FCargo.toml", "/hdri/..%5CREADME.md", "/hdri/.gitkeep"] {
+        for path in [
+            "/hdri/",
+            "/hdri/../src-tauri/Cargo.toml",
+            "/hdri/..%2Fsrc-tauri%2FCargo.toml",
+            "/hdri/..%5CREADME.md",
+            "/hdri/.gitkeep",
+        ] {
             assert_eq!(get(path, &[]).status(), StatusCode::NOT_FOUND, "{path}");
         }
     }

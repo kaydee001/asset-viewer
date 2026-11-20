@@ -2,9 +2,10 @@
 
 use std::path::{Path, PathBuf};
 
-/// what counts as a model, and which neighbouring files get loaded along with it
+/// what counts as a model, and which neighbouring files get loaded along with it. the model types are also
+/// `FORMATS` in web/static/loader.js and the file associations in tauri.conf.json (the tests below check all three)
 const MODEL_EXTENSIONS: &[&str] = &["glb", "gltf", "fbx", "obj", "stl", "ply", "3mf"];
-const SIDECAR_EXTENSIONS: &[&str] = &["bin", "mtl", "png", "jpg", "jpeg", "tga", "webp", "bmp"];
+const SIDECAR_EXTENSIONS: &[&str] = &["bin", "mtl", "png", "jpg", "jpeg", "tga", "webp", "bmp", "ktx2"];
 
 /// the files the page opens on startup, served by index (see protocol.rs) so the page never sends a path
 pub struct StartupFiles(pub Vec<PathBuf>);
@@ -18,11 +19,7 @@ fn has_extension(path: &Path, extensions: &[&str]) -> bool {
 
 /// the first model among the arguments, then its neighbours (.bin, .mtl, textures) sorted by name
 pub fn startup_files(args: &[String]) -> Vec<PathBuf> {
-    let Some(model) = args
-        .iter()
-        .map(Path::new)
-        .find(|p| p.is_file() && has_extension(p, MODEL_EXTENSIONS))
-    else {
+    let Some(model) = args.iter().map(Path::new).find(|p| p.is_file() && has_extension(p, MODEL_EXTENSIONS)) else {
         return Vec::new();
     };
     let model = std::path::absolute(model).unwrap_or_else(|_| model.to_path_buf());
@@ -69,7 +66,8 @@ mod tests {
     }
 
     fn names(files: &[PathBuf]) -> Vec<String> {
-        let mut names: Vec<String> = files.iter().map(|f| f.file_name().unwrap().to_string_lossy().into_owned()).collect();
+        let mut names: Vec<String> =
+            files.iter().map(|f| f.file_name().unwrap().to_string_lossy().into_owned()).collect();
         names.sort();
         names
     }
@@ -80,10 +78,51 @@ mod tests {
         let model = dir.touch("car.gltf");
         dir.touch("car.bin");
         dir.touch("paint.PNG");
+        dir.touch("rough.ktx2"); // basis compressed texture
         dir.touch("notes.txt"); // not a sidecar type
-        let files = startup_files(&[model.clone()]);
+        let files = startup_files(std::slice::from_ref(&model));
         assert_eq!(files[0], std::path::absolute(&model).unwrap());
-        assert_eq!(names(&files), ["car.bin", "car.gltf", "paint.PNG"]);
+        assert_eq!(names(&files), ["car.bin", "car.gltf", "paint.PNG", "rough.ktx2"]);
+    }
+
+    fn sorted(mut extensions: Vec<String>) -> Vec<String> {
+        extensions.sort();
+        extensions
+    }
+
+    fn model_extensions() -> Vec<String> {
+        sorted(MODEL_EXTENSIONS.iter().map(|e| e.to_string()).collect())
+    }
+
+    fn project_file(path: &str) -> String {
+        std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join(path)).unwrap()
+    }
+
+    #[test]
+    fn file_associations_match_the_model_types() {
+        let config: serde_json::Value = serde_json::from_str(&project_file("tauri.conf.json")).unwrap();
+        let associated = config["bundle"]["fileAssociations"][0]["ext"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|e| e.as_str().unwrap().to_string())
+            .collect();
+        assert_eq!(sorted(associated), model_extensions());
+    }
+
+    #[test]
+    fn the_page_opens_the_same_model_types() {
+        // the keys of `const FORMATS = { ... };` in loader.js, one per line ("glb: loadGltf," or "\"3mf\": ...")
+        let loader = project_file("../web/static/loader.js");
+        let start = loader.find("const FORMATS = {").expect("FORMATS table in loader.js");
+        let table = &loader[start..];
+        let table = &table[table.find('{').unwrap() + 1..table.find("};").unwrap()];
+        let formats = table
+            .lines()
+            .filter_map(|line| line.split_once(':'))
+            .map(|(key, _)| key.trim().trim_matches('"').to_string())
+            .collect();
+        assert_eq!(sorted(formats), model_extensions());
     }
 
     #[test]
