@@ -742,9 +742,9 @@ kbd{
     outline: none;
 }
 
-/* Chromium 83 has no :focus-visible, so ui.js sets body.keyboard while the keyboard is used to move focus */
-body.keyboard .row:focus, body.keyboard .tool:focus, body.keyboard .text-btn:focus, body.keyboard .dropdown:focus,
-body.keyboard .icon-btn:focus, body.keyboard input:focus, body.keyboard .section-title:focus{
+/* focus rings only while the keyboard moves focus */
+.row:focus-visible, .tool:focus-visible, .text-btn:focus-visible, .dropdown:focus-visible,
+.icon-btn:focus-visible, input:focus-visible, .section-title:focus-visible{
     outline: 2px solid var(--accent);
     outline-offset: 1px;
 }
@@ -882,7 +882,7 @@ body.dark .tool .ic-moon, body.light .tool .ic-sun{
 }
 
 /* tooltip, text set from data-label by shortcuts.js */
-.tool[data-tip]:hover::after, body.keyboard .tool[data-tip]:focus::after{
+.tool[data-tip]:hover::after, .tool[data-tip]:focus-visible::after{
     content: attr(data-tip);
     position: absolute;
     top: calc(100% + 12px);

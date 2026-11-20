@@ -272,9 +272,3 @@ document.addEventListener("click", (event)=>{
     const title = event.target.closest(".section-title");
     if(title) title.parentElement.classList.toggle("collapsed");
 });
-
-// focus rings only for keyboard users (QtWebEngine's Chromium 83 has no :focus-visible), see style.css
-window.addEventListener("keydown", (event) => {
-    if(event.key === "Tab") document.body.classList.add("keyboard");
-});
-window.addEventListener("mousedown", () => document.body.classList.remove("keyboard"));
