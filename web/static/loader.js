@@ -1,6 +1,6 @@
 // loading a model into the scene. flow of loadModel():
 //   1. make blob urls for every dropped file so sidecars (.bin, .mtl, textures) can be found by name
-//   2. parse with the loader that matches the extension (gltf/glb, fbx, obj, stl, ply, 3mf)
+//   2. parse with the loader that matches the extension (FORMATS below)
 //   3. swap it in for the previous model, normalize its size and position
 //   4. apply the shading mode, frame the camera, start animations, fill stats (stats.js) + parts list
 import * as THREE from './vendor/three/build/three.module.js';
@@ -14,17 +14,70 @@ import { PLYLoader } from './vendor/three/addons/loaders/PLYLoader.js';
 import { ThreeMFLoader } from './vendor/three/addons/loaders/3MFLoader.js';
 import { DRACOLoader } from './vendor/three/addons/loaders/DRACOLoader.js';
 import { MeshoptDecoder } from './vendor/three/addons/libs/meshopt_decoder.module.js';
-import { scene, camera, renderer, projection, PERSPECTIVE_FOV, ORTHO_FOV, requestRender } from './scene.js';
+import { scene, camera, renderer, projection, PERSPECTIVE_FOV, ORTHO_FOV, HOME_POSITION, requestRender } from './scene.js';
 import { controls } from './controls.js';
 import { setAnimations } from './animation.js';
-import { applyViewMode } from './viewmodes.js';
+import { applyViewMode, ownMaterials } from './viewmodes.js';
 import { buildOutliner } from './outliner.js';
 import { showStats } from './stats.js';
-import { setBoundingTarget } from './helpers.js';
+import { setBoundingTarget } from './overlays.js';
+import { extensionOf } from './util.js';
 
 const MODEL_SIZE = 4; // every model is scaled so its longest side is this many units
+const VENDOR = "/static/vendor/three/addons/libs";
 
-export let modelLoaded = false;  // false while the default cube is showing
+// one shared KTX2 (basis) texture decoder; it spawns workers, so it is created once on first use
+let ktx2Loader = null;
+function getKtx2Loader(){
+    if(!ktx2Loader) ktx2Loader = new KTX2Loader().setTranscoderPath(`${VENDOR}/basis/`).detectSupport(renderer);
+    return ktx2Loader;
+}
+
+async function loadGltf(url, manager){
+    // the draco decoder is bundled, so compressed models work offline too. it runs in workers, freed after the load
+    const draco = new DRACOLoader(manager).setDecoderPath(`${VENDOR}/draco/gltf/`);
+    try {
+        const loader = new GLTFLoader(manager).setDRACOLoader(draco).setKTX2Loader(getKtx2Loader()).setMeshoptDecoder(MeshoptDecoder);
+        return await loader.loadAsync(url);
+    } finally {
+        draco.dispose();
+    }
+}
+
+async function loadObj(url, manager, files){
+    const loader = new OBJLoader(manager);
+    // obj has no materials of its own, use a dropped .mtl if there is one
+    const mtl = files.find(f => extensionOf(f.name) === "mtl");
+    if(mtl){
+        const materials = new MTLLoader(manager).parse(await mtl.text(), "");
+        materials.preload();
+        loader.setMaterials(materials);
+    }
+    return loader.loadAsync(url);
+}
+
+// stl and ply give a bare geometry, wrap it in a mesh. models without normals (common for stl) get flat-shaded ones computed
+function meshFromGeometry(geometry){
+    if(!geometry.attributes.normal) geometry.computeVertexNormals();
+    const material = new THREE.MeshStandardMaterial({color: 0xcccccc, roughness: 0.6, metalness: 0, vertexColors: !!geometry.attributes.color});
+    return new THREE.Mesh(geometry, material);
+}
+
+// every format the viewer opens, by extension: (url, manager, all dropped files) -> a three.js object, or
+// gltf's {scene, animations, cameras}. the same list is in src-tauri/src/startup.rs and the file associations
+// in src-tauri/tauri.conf.json (a cargo test keeps those two in step)
+const FORMATS = {
+    glb: loadGltf,
+    gltf: loadGltf,
+    fbx: (url, manager) => new FBXLoader(manager).loadAsync(url),
+    obj: loadObj,
+    stl: async (url, manager) => meshFromGeometry(await new STLLoader(manager).loadAsync(url)),
+    ply: async (url, manager) => meshFromGeometry(await new PLYLoader(manager).loadAsync(url)),
+    "3mf": (url, manager) => new ThreeMFLoader(manager).loadAsync(url)
+};
+export const MODEL_EXTENSIONS = Object.keys(FORMATS);
+
+let modelLoaded = false;          // false while the default cube is showing
 export let currentObject = null;  // what "reset view" frames
 export let modelCameras = [];     // cameras stored in the loaded gltf (perspective only)
 
@@ -34,12 +87,11 @@ scene.add(modelRoot);
 let loadToken = 0; // incremented per load, lets a slow older load notice it was superseded
 
 // default cube shown until the first model is loaded
-const defaultCubeGeometry = new THREE.BoxGeometry(1, 1, 1);
-const defaultCubeMaterial = new THREE.MeshStandardMaterial({color: 0xffffff, metalness: 0.0, roughness: 1});
-const defaultCube = new THREE.Mesh(defaultCubeGeometry, defaultCubeMaterial);
+const defaultCube = new THREE.Mesh(
+    new THREE.BoxGeometry(1, 1, 1),
+    new THREE.MeshStandardMaterial({color: 0xffffff, metalness: 0, roughness: 1})
+);
 defaultCube.position.y = 0.5;
-
-
 modelRoot.add(defaultCube);
 setBoundingTarget(defaultCube);
 currentObject = defaultCube;
@@ -83,19 +135,27 @@ export function frameCamera(object, box = new THREE.Box3().setFromObject(object,
     requestRender();
 }
 
+// "reset view": frame the model, or go back to the starting view of the default cube
+export function resetView(){
+    if(modelLoaded){
+        frameCamera(currentObject);
+        return;
+    }
+    camera.position.copy(HOME_POSITION).multiplyScalar(projection.scale);
+    controls.target.set(0, 0.5, 0);
+    controls.update();
+}
+
 // free gpu memory held by a removed object
 function disposeObject(object){
-    object.traverse(function(obj){
+    object.traverse((obj)=>{
         // the wireframe's copy of the geometry too (viewmodes.js), if one was made
         new Set([obj.geometry, obj.userData.solidGeometry, obj.userData.wireGeometry]).forEach(g => g && g.dispose());
-        if(!obj.material) return;
-        // a debug view may be active, dispose the model's own materials, not the shared override
-        const source = obj.userData.originalMaterial || obj.material;
-        const mats = Array.isArray(source) ? source : [source];
-        mats.forEach(function(mat){
+        // a shading mode may be active: dispose the model's own materials, not the shared override
+        for(const mat of ownMaterials(obj)){
             Object.values(mat).forEach(value => { if(value && value.isTexture) value.dispose(); });
             mat.dispose();
-        });
+        }
     });
 }
 
@@ -122,22 +182,6 @@ function toStandard(mat){
     return converted;
 }
 
-// one shared KTX2 (basis) texture decoder; it spawns workers, so it is created once on first use
-let ktx2Loader = null;
-function getKtx2Loader(){
-    if(!ktx2Loader){
-        ktx2Loader = new KTX2Loader().setTranscoderPath("/static/vendor/three/addons/libs/basis/").detectSupport(renderer);
-    }
-    return ktx2Loader;
-}
-
-// stl and ply give a bare geometry, wrap it in a mesh. models without normals (common for stl) get flat-shaded ones computed
-function meshFromGeometry(geometry){
-    if(!geometry.attributes.normal) geometry.computeVertexNormals();
-    const material = new THREE.MeshStandardMaterial({color: 0xcccccc, roughness: 0.6, metalness: 0, vertexColors: !!geometry.attributes.color});
-    return new THREE.Mesh(geometry, material);
-}
-
 // blob urls of the model currently on screen, revoked when it is replaced
 let activeUrls = [];
 
@@ -148,6 +192,9 @@ function fileKey(name){
 
 // load one model file, resolving sidecar files (.bin, .mtl, textures) from the dropped set
 export async function loadModel(file, allFiles){
+    const load = FORMATS[extensionOf(file.name)];
+    if(!load) throw new Error(`unsupported file type (${MODEL_EXTENSIONS.join(", ")})`);
+
     const token = ++loadToken;
     const urls = new Map();
     const blobUrls = [];
@@ -156,57 +203,32 @@ export async function loadModel(file, allFiles){
         blobUrls.push(blobUrl);
         urls.set(fileKey(f.name), blobUrl);
     }
+    const revokeAll = () => blobUrls.forEach(u => URL.revokeObjectURL(u));
 
     // redirect any url the loaders ask for (e.g. "textures/wood.png") to the matching dropped file
     const manager = new THREE.LoadingManager();
     // textures can finish after the model is on screen (fbx, obj), draw them as they arrive
     manager.onProgress = requestRender;
-    manager.setURLModifier(function(url){
+    manager.setURLModifier((url)=>{
         if(url.startsWith("blob:") || url.startsWith("data:")) return url;
         return urls.get(fileKey(decodeURIComponent(url.split("?")[0]))) || url;
     });
 
-    const ext = file.name.split('.').pop().toLowerCase();
-    const url = urls.get(fileKey(file.name));
     let result;
     try {
-        if(ext == "gltf" || ext == "glb"){
-            // draco decoder is bundled locally, so compressed models work offline too
-            const draco = new DRACOLoader(manager).setDecoderPath("/static/vendor/three/addons/libs/draco/gltf/");
-            const loader = new GLTFLoader(manager).setDRACOLoader(draco).setKTX2Loader(getKtx2Loader()).setMeshoptDecoder(MeshoptDecoder);
-            result = await loader.loadAsync(url);
-            draco.dispose();
-        } else if(ext == "fbx"){
-            result = await new FBXLoader(manager).loadAsync(url);
-        } else if(ext == "stl"){
-            result = meshFromGeometry(await new STLLoader(manager).loadAsync(url));
-        } else if(ext == "ply"){
-            result = meshFromGeometry(await new PLYLoader(manager).loadAsync(url));
-        } else if(ext == "3mf"){
-            result = await new ThreeMFLoader(manager).loadAsync(url);
-        } else {
-            const loader = new OBJLoader(manager);
-            // obj has no materials of its own, use a dropped .mtl if there is one
-            const mtl = allFiles.find(f => f.name.toLowerCase().endsWith(".mtl"));
-            if(mtl){
-                const materials = new MTLLoader(manager).parse(await mtl.text(), "");
-                materials.preload();
-                loader.setMaterials(materials);
-            }
-            result = await loader.loadAsync(url);
-        }
+        result = await load(urls.get(fileKey(file.name)), manager, allFiles);
     } catch(error) {
-        blobUrls.forEach(u => URL.revokeObjectURL(u));
+        revokeAll();
         throw error;
     }
 
-    // gltf returns {scene, animations}, the others return the object itself
+    // gltf returns {scene, animations, cameras}, the others return the object itself
     const object = result.scene !== undefined ? result.scene : result;
 
     // a newer load started while this one was reading, drop this result
     if(token !== loadToken){
         disposeObject(object);
-        blobUrls.forEach(u => URL.revokeObjectURL(u));
+        revokeAll();
         return;
     }
 
@@ -227,13 +249,13 @@ export async function loadModel(file, allFiles){
     const rawSize = box.getSize(new THREE.Vector3());
 
     // standard materials so the hdri lights every model the same way
-    object.traverse(function(obj){
+    object.traverse((obj)=>{
         if(obj.isMesh && obj.material){
             obj.material = Array.isArray(obj.material) ? obj.material.map(toStandard) : toStandard(obj.material);
         }
     });
 
-    // normalize scale, center on x/z and rest on the grid
+    // normalize scale, center on x/z and rest on the grid.
     // scaling the root by k around its own position moves every point p to pos + k(p - pos), and so does
     // the box, so it is adjusted here instead of walking every vertex again
     const rawMax = Math.max(rawSize.x, rawSize.y, rawSize.z);

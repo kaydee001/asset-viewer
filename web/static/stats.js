@@ -1,16 +1,23 @@
-// the model info at the top of the left panel: name, format, counts, dimensions
+// the model info at the bottom of the left panel: name, format, counts, dimensions
+import { ownMaterials } from './viewmodes.js';
+import { extensionOf, formatCount } from './util.js';
+
+// non-indexed geometry has 3 vertices per triangle, indexed geometry 3 indices per triangle
+export function triangleCount(geometry){
+    return (geometry.index ? geometry.index.count : geometry.attributes.position.count) / 3;
+}
+
 export function showStats(object, file, rawSize){
-    let objCount = 0;
+    let objects = 0;
     let vertices = 0;
     let triangles = 0;
     const materials = new Set();
-    object.traverse(function(obj){
+    object.traverse((obj)=>{
         if(!obj.isMesh) return;
-        [].concat(obj.userData.originalMaterial || obj.material).forEach(m => materials.add(m));
+        ownMaterials(obj).forEach(m => materials.add(m));
         vertices += countVertices(obj.geometry);
-        const count = obj.geometry.index ? obj.geometry.index.count : obj.geometry.attributes.position.count;
-        triangles += count / 3;
-        objCount += 1;
+        triangles += triangleCount(obj.geometry);
+        objects += 1;
     });
 
     const statsPanel = document.getElementById("stats-panel");
@@ -20,30 +27,29 @@ export function showStats(object, file, rawSize){
     title.className = "stat-name";
     title.textContent = file.name;
     title.title = file.name;
-    const extension = file.name.includes(".") ? file.name.split(".").pop().toUpperCase() : "";
     const meta = document.createElement("div");
     meta.className = "stat-meta";
-    meta.textContent = [extension, formatBytes(file.size)].filter(Boolean).join(" · ");
+    meta.textContent = [extensionOf(file.name).toUpperCase(), formatBytes(file.size)].filter(Boolean).join(" · ");
     statsPanel.append(title, meta);
 
     // counts as a 2 x 2 grid of figures
     const figures = document.createElement("div");
     figures.className = "figures";
     for(const [label, value] of [
-        ["Triangles", triangles], ["Vertices", vertices], ["Objects", objCount], ["Materials", materials.size]
+        ["Triangles", triangles], ["Vertices", vertices], ["Objects", objects], ["Materials", materials.size]
     ]){
         const cell = document.createElement("div");
         cell.className = "figure";
         const key = document.createElement("span");
         key.textContent = label;
         const val = document.createElement("strong");
-        val.textContent = Math.round(value).toLocaleString("en-US");
+        val.textContent = formatCount(value);
         cell.append(key, val);
         figures.append(cell);
     }
     statsPanel.append(figures);
 
-    // size per axis, lettered in the same colours as the axes gizmo (helpers.js)
+    // size per axis, lettered in the same colours as the axes gizmo (overlays.js)
     const dims = document.createElement("div");
     dims.className = "dims";
     const dimsLabel = document.createElement("span");
@@ -63,7 +69,7 @@ export function showStats(object, file, rawSize){
 }
 
 function formatBytes(bytes){
-    if(bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024)).toLocaleString("en-US")} KB`;
+    if(bytes < 1024 * 1024) return `${formatCount(Math.max(1, bytes / 1024))} KB`;
     return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
 }
 

@@ -10,6 +10,7 @@
     --ease: cubic-bezier(0.22, 1, 0.36, 1);
     --fast: 140ms;
     --accent: #f0a63a;
+    --accent-hover: #f5b456;
     --on-accent: #1c1407;
     /* same colours as the axes gizmo in helpers.js */
     --axis-x: #ff3653;
@@ -61,7 +62,7 @@ body.light{
     font-family: var(--font);
 }
 
-/* the hidden attribute wins over component display rules (.tool is flex) */
+/* the hidden attribute wins over component display rules (.tool, #overlay and #help are flex) */
 [hidden]{
     display: none !important;
 }
@@ -156,7 +157,6 @@ body:not(.has-model) #model-panel{
 }
 
 .dock-head{
-    position: -webkit-sticky;
     position: sticky;
     top: 0;
     z-index: 1;
@@ -305,7 +305,7 @@ body.ui-hidden #overlay{
 .figures{
     display: grid;
     grid-template-columns: 1fr 1fr;
-    grid-gap: 16px 12px;
+    gap: 16px 12px;
     margin-top: 20px;
 }
 
@@ -329,7 +329,7 @@ body.ui-hidden #overlay{
 .dims{
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
-    grid-gap: 4px 12px;
+    gap: 4px 12px;
     margin-top: 20px;
 }
 
@@ -433,7 +433,6 @@ body.ui-hidden #overlay{
 }
 
 .part input{
-    -webkit-appearance: none;
     appearance: none;
     position: relative;
     flex: none;
@@ -777,7 +776,6 @@ kbd{
 }
 
 input[type=range]{
-    -webkit-appearance: none;
     appearance: none;
     flex: 1;
     width: 100%;
@@ -806,7 +804,6 @@ input[type=range]::-webkit-slider-thumb{
 
 #commandbar{
     top: 12px;
-    width: -webkit-fit-content;
     width: fit-content;
     display: flex;
     align-items: center;
@@ -944,6 +941,7 @@ body.dark .tool .ic-moon, body.light .tool .ic-sun{
     max-width: calc(100vw - var(--right-w) - 32px);
     display: flex;
     align-items: center;
+    gap: 12px;
     padding: 8px 12px 8px 8px;
     background: var(--dock);
     border: 1px solid var(--hair);
@@ -954,14 +952,6 @@ body.dark .tool .ic-moon, body.light .tool .ic-sun{
 
 body.has-model #transport{
     max-width: calc(100vw - var(--left-w) - var(--right-w) - 32px);
-}
-
-#transport{
-    max-width: calc(100vw - var(--right-w) - 32px);
-}
-
-#transport > * + *{
-    margin-left: 12px;
 }
 
 .icon-btn{
@@ -1006,7 +996,7 @@ body.has-model #transport{
 }
 
 .icon-btn.play:hover{
-    background: #f5b456;
+    background: var(--accent-hover);
     color: var(--on-accent);
 }
 
@@ -1061,7 +1051,6 @@ body.has-model #transport{
 
 #hint{
     bottom: 88px;
-    width: -webkit-fit-content;
     width: fit-content;
     display: flex;
     flex-direction: column;
@@ -1099,7 +1088,6 @@ body.has-model #hint, body.opening #hint{
 #toast{
     position: fixed;
     bottom: 88px;
-    width: -webkit-fit-content;
     width: fit-content;
     max-width: 56vw;
     padding: 8px 12px;
@@ -1189,6 +1177,7 @@ body.busy #progress{
     right: 0;
     bottom: 0;
     z-index: 15;
+    display: flex;
     align-items: center;
     justify-content: center;
     background: var(--scrim);
@@ -1225,7 +1214,7 @@ body.busy #progress{
     color: var(--text-2);
 }
 
-.help-row kbd, .help-foot kbd{
+.help-row kbd{
     margin-right: 0;
 }
 

@@ -1,71 +1,87 @@
 // the view toggles and buttons: hdri, orbit switches, wireframe, shading, grid, theme, screenshot, reset.
 // the DOM ids used here are defined in web/index.html. the other ui files build on this one:
 //   shortcuts.js (keys), dragdrop.js (opening files), settings.js (remembering all of this)
+import * as THREE from './vendor/three/build/three.module.js';
 import {
-    scene, camera, renderer, setEnvironment, setSunAngle, setGridTheme, gridHelper,
+    scene, camera, renderer, setEnvironment, setSunAngle, setGridTheme, grid,
     projection, PERSPECTIVE_FOV, ORTHO_FOV, ORTHO_SCALE, SETTLED_PIXEL_RATIO
 } from './scene.js';
 import { updateViewOffset } from './layout.js';
-import { bboxHelper, axesHelper } from './helpers.js';
-import { controls, stopMotion } from './controls.js';
-import * as THREE from './vendor/three/build/three.module.js';
-import { frameCamera, modelLoaded, currentObject, modelRoot, modelCameras } from './loader.js';
+import { bboxOverlay, axesOverlay } from './overlays.js';
+import { controls, stopMotion, isGridLocked, setGridLock } from './controls.js';
+import { frameCamera, resetView, currentObject, modelRoot, modelCameras } from './loader.js';
 import { showToast } from './toast.js';
 import { applyViewMode, setWireframeTheme } from './viewmodes.js';
 import { hdriUrl } from './shell.js';
+import { setSwitch, isOn } from './util.js';
 
-// switches are plain buttons; the "active" class is what styles them as on
-function setLabel(btn, isOn){
-    btn.classList.toggle("active", isOn);
-    btn.setAttribute("aria-checked", isOn);
+const byId = (id) => document.getElementById(id);
+
+// the switches' aria-checked starts out matching their "active" class in index.html
+document.querySelectorAll("[role=switch]").forEach(btn => setSwitch(btn, isOn(btn)));
+
+// a switch button that flips `get()` through `set(on)` and shows the new state
+function wireSwitch(btn, get, set){
+    btn.addEventListener("click", ()=>{
+        set(!get());
+        setSwitch(btn, get());
+    });
+    return btn;
 }
 
-// select hdri (built-in presets listed in index.html)
-export const hdriSelect = document.getElementById("hdri-select");
-hdriSelect.addEventListener("change", (event)=>{
-    setEnvironment(hdriUrl(event.target.value));
-    document.getElementById("hdri-name").textContent = "";
+// ---------- lighting ----------
+
+// built-in presets (listed in index.html) and the user's own .hdr files
+export const hdriSelect = byId("hdri-select");
+const hdriName = byId("hdri-name");
+hdriSelect.addEventListener("change", ()=>{
+    setEnvironment(hdriUrl(hdriSelect.value));
+    hdriName.textContent = "";
 });
 
-// upload hdri
-const hdriUpload = document.getElementById("hdri-upload");
-const uploadHdrBtn = document.getElementById("upload-hdri-btn");
-uploadHdrBtn.addEventListener("click", ()=>{
-    hdriUpload.click();
-});
-hdriUpload.addEventListener("change", (event)=>{
-    const file = event.target.files[0];
+const hdriUpload = byId("hdri-upload");
+byId("upload-hdri-btn").addEventListener("click", () => hdriUpload.click());
+hdriUpload.addEventListener("change", ()=>{
+    const file = hdriUpload.files[0];
     if(!file) return;
     setEnvironment(URL.createObjectURL(file), true);
-    document.getElementById("hdri-name").textContent = file.name;
+    hdriName.textContent = file.name;
+    hdriUpload.value = "";
 });
 
-// bottom lock toggle
-export const bottomLockBtn = document.getElementById("bottom-lock-btn");
-bottomLockBtn.addEventListener("click", ()=>{
-    const isLocked = controls.maxPolarAngle === Math.PI/2;
-    controls.maxPolarAngle = isLocked ? Math.PI : Math.PI/2;
-    setLabel(bottomLockBtn, !isLocked);
+// light angle: turns the lighting (hdri and key light together) around the model, see scene.js
+export const sunRange = byId("sun-range");
+sunRange.addEventListener("input", () => setSunAngle(+sunRange.value));
+
+// exposure: overall brightness
+export const exposureRange = byId("exposure-range");
+export function setExposure(value){ renderer.toneMappingExposure = value; }
+exposureRange.addEventListener("input", () => setExposure(+exposureRange.value));
+
+// double click a slider to put it back to its default (the value in index.html)
+for(const range of [sunRange, exposureRange]){
+    range.addEventListener("dblclick", ()=>{
+        range.value = range.defaultValue;
+        range.dispatchEvent(new Event("input", {bubbles: true}));
+        range.dispatchEvent(new Event("change", {bubbles: true}));
+    });
+}
+
+// ---------- camera ----------
+
+export const rotateBtn = wireSwitch(byId("auto-rotate-btn"), () => controls.autoRotate, (on)=>{
+    controls.autoRotate = on;
+    if(!on) stopMotion();
 });
 
-// panning is always on (right mouse button or shift + left drag). with the grid lock on it must not
-// carry the camera under the grid: when the target is dragged below it, lift it back up
-controls.addEventListener("change", ()=>{
-    if(controls.maxPolarAngle !== Math.PI/2 || controls.target.y >= 0) return;
-    const lift = -controls.target.y;
-    controls.target.y += lift;
-    camera.position.y += lift;
-});
+export const bottomLockBtn = wireSwitch(byId("bottom-lock-btn"), isGridLocked, setGridLock);
 
 // orthographic <-> perspective, see the note in scene.js
-export const orthoBtn = document.getElementById("ortho-btn");
-orthoBtn.addEventListener("click", ()=>{
-    const on = !projection.orthographic;
+export const orthoBtn = wireSwitch(byId("ortho-btn"), () => projection.orthographic, (on)=>{
     const before = Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2);
     projection.orthographic = on;
     projection.scale = on ? ORTHO_SCALE : 1;
     camera.fov = on ? ORTHO_FOV : PERSPECTIVE_FOV;
-    camera.far = on ? 5000 : 1000;
     camera.updateProjectionMatrix();
     // keep the model the same size on screen: move the camera out (or back in) by the change in tan(fov / 2)
     const ratio = before / Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2);
@@ -74,47 +90,74 @@ orthoBtn.addEventListener("click", ()=>{
     controls.minDistance *= ratio;
     controls.maxDistance *= ratio;
     controls.update();
-    setLabel(orthoBtn, on);
+    // the field of view is the orbit camera's again, so a gltf camera picked in the list no longer applies
+    showOrbitCamera();
 });
 
-// toggle auto rotate
-controls.autoRotate = false;
-export const rotateBtn = document.getElementById("auto-rotate-btn");
-rotateBtn.addEventListener("click", ()=>{
-    controls.autoRotate = !controls.autoRotate;
-    setLabel(rotateBtn, controls.autoRotate);
-    if(!controls.autoRotate) stopMotion();
-})
+// reset the camera view, other settings stay as they are
+export const resetBtn = byId("reset-btn");
+resetBtn.addEventListener("click", ()=>{
+    resetView();
+    showOrbitCamera();
+});
 
-controls.autoRotateSpeed = 5.0;
+// cameras stored in a gltf file, offered next to the normal orbit camera
+const ORBIT = "-1";
+const cameraSection = byId("camera-section");
+const cameraSelect = byId("camera-select");
+export function updateCameraSelect(){
+    cameraSelect.textContent = "";
+    cameraSection.hidden = !modelCameras.length;
+    if(!modelCameras.length) return;
+    cameraSelect.add(new Option("Orbit (default)", ORBIT));
+    modelCameras.forEach((cam, i) => cameraSelect.add(new Option(cam.name || `camera ${i + 1}`, i)));
+}
+function showOrbitCamera(){
+    if(cameraSelect.options.length) cameraSelect.value = ORBIT;
+}
+cameraSelect.addEventListener("change", ()=>{
+    if(cameraSelect.value === ORBIT){
+        frameCamera(currentObject);
+        return;
+    }
+    // look from the gltf camera's position, along its view direction, at the model's distance
+    const cam = modelCameras[+cameraSelect.value];
+    cam.updateWorldMatrix(true, false);
+    const position = cam.getWorldPosition(new THREE.Vector3());
+    const direction = cam.getWorldDirection(new THREE.Vector3());
+    const center = new THREE.Box3().setFromObject(currentObject, true).getCenter(new THREE.Vector3());
+    camera.position.copy(position);
+    camera.fov = cam.fov;
+    camera.updateProjectionMatrix();
+    controls.target.copy(position).addScaledVector(direction, Math.max(position.distanceTo(center), 0.1));
+    controls.update();
+});
 
-// toggle wireframe mode (also reset to off by dragdrop.js whenever a new model loads)
-export const wireframeBtn = document.getElementById("wireframe-btn");
+// ---------- overlays and shading ----------
+
+export const gridBtn = wireSwitch(byId("grid-btn"), () => grid.visible, (on) => { grid.visible = on; });
+export const bboxBtn = wireSwitch(byId("bbox-btn"), () => bboxOverlay.visible, (on) => { bboxOverlay.visible = on; });
+export const axesBtn = wireSwitch(byId("axes-btn"), () => axesOverlay.visible, (on) => { axesOverlay.visible = on; });
+
+// wireframe sits on top of the shading mode, which comes back when it is turned off (viewmodes.js).
+// dragdrop.js turns it off whenever a new model loads
+export const wireframeBtn = byId("wireframe-btn");
 let wireframeOn = false;
-export function setWireframe(value){
-    wireframeOn = value;
-    // the shading mode is kept and comes back when wireframe is turned off (viewmodes.js)
+export function setWireframe(on){
+    wireframeOn = on;
     applyViewMode(modelRoot, undefined, wireframeOn);
-    setLabel(wireframeBtn, wireframeOn);
+    setSwitch(wireframeBtn, wireframeOn);
 }
 wireframeBtn.addEventListener("click", () => setWireframe(!wireframeOn));
 
-// shading mode (shaded, clay, normals, uv checker)
-export const shadingSelect = document.getElementById("shading-select");
-shadingSelect.addEventListener("change", ()=>{
-    applyViewMode(modelRoot, shadingSelect.value);
-});
+// shading mode (shaded, clay, normals, uv checker, vertex colors)
+export const shadingSelect = byId("shading-select");
+shadingSelect.addEventListener("change", () => applyViewMode(modelRoot, shadingSelect.value));
 
-// toggle scene grid
-export const gridBtn = document.getElementById("grid-btn");
-gridBtn.addEventListener("click", ()=>{
-    gridHelper.visible = !gridHelper.visible;
-    setLabel(gridBtn, gridHelper.visible);
-});
+// ---------- theme ----------
 
-// toggle theme (light <-> dark)
-export const themeBtn = document.getElementById("theme-btn");
-// a user toggle fades the colours (style.css body.theme-fade); the restore on startup switches at once
+// .active = dark. a user toggle fades the colours (style.css body.theme-fade); the restore on startup switches at once
+export const themeBtn = byId("theme-btn");
 let themeFade = false;
 requestAnimationFrame(() => { themeFade = true; });
 let fadeTimer = null;
@@ -124,23 +167,28 @@ themeBtn.addEventListener("click", ()=>{
         clearTimeout(fadeTimer);
         fadeTimer = setTimeout(() => document.body.classList.remove("theme-fade"), 400);
     }
-    document.body.classList.toggle("dark");
-    document.body.classList.toggle("light");
-    const dark = document.body.classList.contains("dark");
-    setLabel(themeBtn, dark);
+    const dark = !document.body.classList.contains("dark");
+    document.body.classList.toggle("dark", dark);
+    document.body.classList.toggle("light", !dark);
+    setSwitch(themeBtn, dark);
     setGridTheme(dark);
     setWireframeTheme(dark);
 });
 
-// save the current view as a png. transparent by default; the scale option renders at a higher
-// resolution, and "include background" paints the current background colour behind the model
-export const shotScaleSelect = document.getElementById("shot-scale");
-export const shotBgBtn = document.getElementById("shot-bg-btn");
-shotBgBtn.addEventListener("click", ()=>{
-    setLabel(shotBgBtn, !shotBgBtn.classList.contains("active"));
-});
+// ---------- screenshot (hidden for now, see index.html) ----------
 
-document.getElementById("screenshot-btn").addEventListener("click", ()=>{
+// a png of the current view. transparent by default; the scale option renders at a higher resolution,
+// and "include background" paints the stage colour behind the model
+export const shotScaleSelect = byId("shot-scale");
+let shotBackground = false;
+export const shotBgBtn = wireSwitch(byId("shot-bg-btn"), () => shotBackground, (on) => { shotBackground = on; });
+
+// a flat colour standing in for the stage gradient: keep in step with body::before / ::after in style.css
+function backgroundColor(){
+    return document.body.classList.contains("dark") ? "#161617" : "#c6c6c9";
+}
+
+byId("screenshot-btn").addEventListener("click", ()=>{
     const gl = renderer.getContext();
     // the supersampled ratio, even if the click came while the view was still moving (drawn at screen resolution)
     const ratio = SETTLED_PIXEL_RATIO;
@@ -154,7 +202,7 @@ document.getElementById("screenshot-btn").addEventListener("click", ()=>{
     renderer.render(scene, camera);
 
     let source = renderer.domElement;
-    if(shotBgBtn.classList.contains("active")){
+    if(shotBackground){
         source = document.createElement("canvas");
         source.width = renderer.domElement.width;
         source.height = renderer.domElement.height;
@@ -177,90 +225,10 @@ document.getElementById("screenshot-btn").addEventListener("click", ()=>{
     renderer.render(scene, camera);
 });
 
-// reset the camera view, other settings stay as they are
-export const resetBtn = document.getElementById("reset-btn");
-resetBtn.addEventListener("click", ()=>{
-    if (modelLoaded)
-    {
-        frameCamera(currentObject);
-    }
-    else
-    {
-        camera.position.set(2.5, 2.5, 2.5).multiplyScalar(projection.scale);
-        controls.target.set(0, 0.5, 0);
-        controls.update();
-    }
-});
-
-// bounding box and axes overlays (helpers.js)
-export const bboxBtn = document.getElementById("bbox-btn");
-bboxBtn.addEventListener("click", ()=>{
-    bboxHelper.visible = !bboxHelper.visible;
-    setLabel(bboxBtn, bboxHelper.visible);
-});
-
-export const axesBtn = document.getElementById("axes-btn");
-axesBtn.addEventListener("click", ()=>{
-    axesHelper.visible = !axesHelper.visible;
-    setLabel(axesBtn, axesHelper.visible);
-});
-
-// light angle: turns the lighting (hdri and key light together) around the model, see scene.js
-export const sunRange = document.getElementById("sun-range");
-export { setSunAngle };
-sunRange.addEventListener("input", () => setSunAngle(+sunRange.value));
-
-// exposure: overall brightness
-export const exposureRange = document.getElementById("exposure-range");
-export function setExposure(value){ renderer.toneMappingExposure = value; }
-exposureRange.addEventListener("input", () => setExposure(+exposureRange.value));
-
-// double click a slider (light angle, exposure) to put it back to its default (the value in index.html)
-for(const range of [sunRange, exposureRange]){
-    range.addEventListener("dblclick", () => {
-        range.value = range.defaultValue;
-        range.dispatchEvent(new Event("input", {bubbles: true}));
-        range.dispatchEvent(new Event("change", {bubbles: true}));
-    });
-}
-
-// a flat colour standing in for the background in screenshots: the theme's base colour
-function backgroundColor(){
-    // keep in step with --stage in style.css
-    return document.body.classList.contains("dark") ? "#161617" : "#c6c6c9";
-}
-
-// cameras stored in a gltf file, offered next to the normal orbit camera
-const cameraSection = document.getElementById("camera-section");
-const cameraSelect = document.getElementById("camera-select");
-export function updateCameraSelect(){
-    cameraSelect.textContent = "";
-    cameraSection.style.display = modelCameras.length ? "block" : "none";
-    if(!modelCameras.length) return;
-    cameraSelect.add(new Option("Orbit (default)", -1));
-    modelCameras.forEach((cam, i) => cameraSelect.add(new Option(cam.name || `camera ${i + 1}`, i)));
-}
-cameraSelect.addEventListener("change", ()=>{
-    const index = +cameraSelect.value;
-    if(index < 0){
-        frameCamera(currentObject);
-        return;
-    }
-    // look from the gltf camera's position, along its view direction, at the model's distance
-    const cam = modelCameras[index];
-    cam.updateWorldMatrix(true, false);
-    const position = cam.getWorldPosition(new THREE.Vector3());
-    const direction = cam.getWorldDirection(new THREE.Vector3());
-    const center = new THREE.Box3().setFromObject(currentObject, true).getCenter(new THREE.Vector3());
-    camera.position.copy(position);
-    camera.fov = cam.fov;
-    camera.updateProjectionMatrix();
-    controls.target.copy(position).addScaledVector(direction, Math.max(position.distanceTo(center), 0.1));
-    controls.update();
-});
+// ---------- panels ----------
 
 // hide / show all panels
-document.getElementById("hide-btn").addEventListener("click", ()=>{
+byId("hide-btn").addEventListener("click", ()=>{
     document.body.classList.toggle("ui-hidden");
     if(document.body.classList.contains("ui-hidden")){
         showToast("Interface hidden, press H to show it");

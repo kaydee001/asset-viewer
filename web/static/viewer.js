@@ -1,12 +1,13 @@
 // entry point (loaded by web/index.html): imports every module, then runs the render loop
-import { scene, camera, renderer, projection, requestRender, takeRenderRequest, SETTLED_PIXEL_RATIO, MOVING_PIXEL_RATIO } from './scene.js';
 import * as THREE from './vendor/three/build/three.module.js';
+import { scene, camera, renderer, projection, requestRender, takeRenderRequest, SETTLED_PIXEL_RATIO, MOVING_PIXEL_RATIO } from './scene.js';
 import { controls } from './controls.js';
 import { updateAnimation } from './animation.js';
 import { modelRoot } from './loader.js';
-import { updateHelpers, renderGizmo } from './helpers.js';
+import { updateOverlays, renderGizmo } from './overlays.js';
 import { countFrame } from './fps.js';
-// imported only for their side effects, they wire up the page. settings.js goes last so it can restore saved state
+// imported only for their side effects, they wire up the page. dropdown.js has to come before settings.js
+// (which sets select values), and settings.js goes last so every control it restores is ready
 import './layout.js';
 import './ui.js';
 import './shortcuts.js';
@@ -14,8 +15,8 @@ import './dragdrop.js';
 import './dropdown.js';
 import './settings.js';
 
-// handle for debugging from the dev tools console: add ?debug to the url, or start the app with --debug
-if(location.search.includes("debug") || window.__AV_DEBUG__) window.viewer = { scene, camera, renderer, controls, modelRoot };
+// handle for debugging from the dev tools console: start the app with --debug (main.rs sets __AV_DEBUG__)
+if(window.__AV_DEBUG__) window.viewer = { scene, camera, renderer, controls, modelRoot };
 
 // any input can change the picture (a toggle, a slider, a key, a dropped file), so it asks for a frame.
 // capture phase, so it runs even when a handler stops the event
@@ -53,7 +54,8 @@ function visibleMotion(){
 
 // orthographic is a 1 degree camera hundreds of units away (scene.js). with a near plane of 0.1 the depth
 // buffer has almost no precision left at that distance and surfaces flicker through each other, so the near
-// and far planes are kept around the target instead. the scene (12 unit grid, 4 unit model) fits in +-50
+// and far planes are kept around the target instead. the scene (12 unit grid, 4 unit model) fits in +-50.
+// this is the only place the clip planes are set
 const ORTHO_DEPTH = 50;
 function updateClipPlanes(){
     let near = 0.1, far = 1000;
@@ -85,7 +87,7 @@ function animate(now){
     const needed = animating || cameraMoved || requested || ratioChanged;
     if(!needed && now - lastFrame <= IDLE_REFRESH_MS) return;
     lastFrame = now;
-    updateHelpers(animating);
+    updateOverlays(animating);
     updateClipPlanes();
     renderer.render(scene, camera);
     renderGizmo(renderer, camera);

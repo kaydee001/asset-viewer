@@ -41,9 +41,8 @@ for(const [key, btn] of Object.entries(shortcuts)){
     row.append(name, keycap);
     helpList.append(row);
 }
-const helpBtn = shortcuts["?"];
-const setHelp = (open) => { help.style.display = open ? "flex" : "none"; };
-helpBtn.addEventListener("click", () => setHelp(help.style.display === "none"));
+const setHelp = (open) => { help.hidden = !open; };
+shortcuts["?"].addEventListener("click", () => setHelp(help.hidden));
 help.addEventListener("click", (event) => { if(event.target === help) setHelp(false); });
 
 window.addEventListener("keydown", (event)=>{

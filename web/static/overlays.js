@@ -2,26 +2,31 @@
 // top right corner, which is always there (like blender's).
 // they live in the scene, not in modelRoot, so loading a model never disposes them
 import * as THREE from './vendor/three/build/three.module.js';
-import { scene, camera, renderer, requestRender } from './scene.js';
+import { scene, camera, renderer, requestRender, GRID_SIZE } from './scene.js';
 import { controls, stopMotion } from './controls.js';
 import { viewportRight } from './layout.js';
 
-// --- bounding box ---
-// webgl lines are one pixel wide and a tight box lies right on the model's own edges, so the edges are
-// drawn as thin solid bars on top of everything (updateHelpers keeps them on the model)
-export const bboxHelper = new THREE.Group();
-bboxHelper.visible = false;
-scene.add(bboxHelper);
+// the axis colours of the ground lines and the gizmo, as Blender's. style.css has them too (--axis-*),
+// for the dimensions in the model info
+const AXIS_COLORS = {x: "#ff3653", y: "#8adb00", z: "#2c8fff"};
 
 // overlay colours are exact: no tone mapping or exposure, and the hex values are taken as sRGB
 // (three r150 would otherwise treat them as linear and the output encoding would wash them out)
-const overlayColor = (hex) => new THREE.Color(hex).convertSRGBToLinear();
+const overlayColor = (color) => new THREE.Color(color).convertSRGBToLinear();
+
+// --- bounding box ---
+// webgl lines are one pixel wide and a tight box lies right on the model's own edges, so the edges are
+// drawn as thin solid bars on top of everything (updateOverlays keeps them on the model)
+export const bboxOverlay = new THREE.Group();
+bboxOverlay.visible = false;
+scene.add(bboxOverlay);
+
 const barMaterial = new THREE.MeshBasicMaterial({color: overlayColor(0xffcc00), depthTest: false, transparent: true, toneMapped: false});
 const bars = [];
 for(let i = 0; i < 12; i++){
     const bar = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), barMaterial);
     bar.renderOrder = 5;
-    bboxHelper.add(bar);
+    bboxOverlay.add(bar);
     bars.push(bar);
 }
 
@@ -36,36 +41,38 @@ function fitBoundingBox(object){
     box.getCenter(center);
     const t = Math.max(size.x, size.y, size.z) * 0.008; // bar thickness
     let i = 0;
+    const place = (x, y, z, sx, sy, sz) => {
+        bars[i].position.set(x, y, z);
+        bars[i].scale.set(sx, sy, sz);
+        i++;
+    };
     // four bars along each axis, one in each corner of the box
     for(const sa of [-1, 1]){
         for(const sb of [-1, 1]){
-            bars[i++].position.set(center.x, center.y + sa * size.y / 2, center.z + sb * size.z / 2);
-            bars[i - 1].scale.set(size.x + t, t, t);
-            bars[i++].position.set(center.x + sa * size.x / 2, center.y, center.z + sb * size.z / 2);
-            bars[i - 1].scale.set(t, size.y + t, t);
-            bars[i++].position.set(center.x + sa * size.x / 2, center.y + sb * size.y / 2, center.z);
-            bars[i - 1].scale.set(t, t, size.z + t);
+            place(center.x, center.y + sa * size.y / 2, center.z + sb * size.z / 2, size.x + t, t, t);
+            place(center.x + sa * size.x / 2, center.y, center.z + sb * size.z / 2, t, size.y + t, t);
+            place(center.x + sa * size.x / 2, center.y + sb * size.y / 2, center.z, t, t, size.z + t);
         }
     }
 }
 
 // --- axes ---
 // on the ground: a red line along x and a blue one along z, as long as the grid (the model hides the middle)
-export const axesHelper = new THREE.Group();
-axesHelper.visible = false;
-scene.add(axesHelper);
+export const axesOverlay = new THREE.Group();
+axesOverlay.visible = false;
+scene.add(axesOverlay);
 
 function groundLine(width, depth, color){
     const line = new THREE.Mesh(
         new THREE.PlaneGeometry(width, depth),
         new THREE.MeshBasicMaterial({color: overlayColor(color), transparent: true, opacity: 0.85, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, toneMapped: false})
     );
-    line.rotation.x = -Math.PI/2;
+    line.rotation.x = -Math.PI / 2;
     line.position.y = 0.004;
-    axesHelper.add(line);
+    axesOverlay.add(line);
 }
-groundLine(12, 0.03, 0xff3653);
-groundLine(0.03, 12, 0x2c8fff);
+groundLine(GRID_SIZE, 0.03, AXIS_COLORS.x);
+groundLine(0.03, GRID_SIZE, AXIS_COLORS.z);
 
 // --- navigation gizmo ---
 // top right of the viewport, like blender's: axis balls that turn with the camera. always shown (unless the
@@ -129,9 +136,9 @@ const backdrop = (()=>{
 
 const balls = []; // clickable: each one knows the direction the view turns to
 for(const [direction, color, letter] of [
-    [new THREE.Vector3(1, 0, 0), "#ff3653", "X"],
-    [new THREE.Vector3(0, 1, 0), "#8adb00", "Y"],
-    [new THREE.Vector3(0, 0, 1), "#2c8fff", "Z"]
+    [new THREE.Vector3(1, 0, 0), AXIS_COLORS.x, "X"],
+    [new THREE.Vector3(0, 1, 0), AXIS_COLORS.y, "Y"],
+    [new THREE.Vector3(0, 0, 1), AXIS_COLORS.z, "Z"]
 ]){
     const stick = new THREE.Mesh(
         new THREE.CylinderGeometry(0.035, 0.035, 1, 8),
@@ -259,7 +266,7 @@ let boxStale = true; // the exact box walks every vertex, so it is only measured
 export function setBoundingTarget(object){
     target = object;
     boxStale = true;
-    updateHelpers();
+    updateOverlays();
 }
 
 // the model moved without a clip playing (scrubbing the seek bar)
@@ -269,9 +276,9 @@ export function invalidateBox(){
 
 // called from viewer.js before each drawn frame. a still model keeps its box; a playing clip can move
 // the model, so then the box is measured every frame
-export function updateHelpers(animating = false){
+export function updateOverlays(animating = false){
     if(animating) boxStale = true; // also while the box is hidden, so it is right when it is turned on
-    if(!bboxHelper.visible || !target) return;
+    if(!bboxOverlay.visible || !target) return;
     // nothing to box while the default cube is hidden (loader.js)
     for(const bar of bars) bar.visible = target.visible;
     if(!target.visible) return;

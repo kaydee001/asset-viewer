@@ -1,12 +1,15 @@
 // the Parts section of the left panel: the model's node tree with a visibility checkbox per node and
 // a triangle count per mesh. clicking a mesh shows its materials underneath.
+import * as THREE from './vendor/three/build/three.module.js';
+import { triangleCount } from './stats.js';
+import { ownMaterials } from './viewmodes.js';
+import { formatCount } from './util.js';
 
 const MAX_ROWS = 300; // cap the rows so huge scenes don't flood the DOM (the title still shows the full count)
 const MAX_INDENT = 8; // deeper levels are drawn at the same indent
 
-// texture slots worth listing in the material info
-const MAP_SLOTS = ["map", "normalMap", "roughnessMap", "metalnessMap", "aoMap", "emissiveMap", "alphaMap", "bumpMap"];
-const SLOT_LABELS = {
+// texture slots worth listing in the material info, with their readable names
+const MAP_SLOTS = {
     map: "Base color map", normalMap: "Normal map", roughnessMap: "Roughness map", metalnessMap: "Metalness map",
     aoMap: "AO map", emissiveMap: "Emissive map", alphaMap: "Alpha map", bumpMap: "Bump map"
 };
@@ -48,15 +51,13 @@ function typeIcon(type){
 // rebuilt from scratch for every loaded model
 export function buildOutliner(object){
     const list = document.getElementById("parts-list");
-    const title = document.getElementById("parts-title");
     const info = document.getElementById("material-info");
     list.textContent = "";
     info.textContent = "";
 
     let meshCount = 0;
     object.traverse(obj => { if(obj.isMesh) meshCount++; });
-    title.firstChild.textContent = "Parts";
-    document.getElementById("parts-count").textContent = meshCount.toLocaleString("en-US");
+    document.getElementById("parts-count").textContent = formatCount(meshCount);
 
     let rows = 0;
     let selected = null;
@@ -82,16 +83,11 @@ export function buildOutliner(object){
 
         const count = document.createElement("span");
         count.className = "part-tris";
-        if(node.isMesh){
-            // non-indexed geometry has 3 vertices per triangle, indexed has 3 indices per triangle
-            const geometry = node.geometry;
-            const tris = (geometry.index ? geometry.index.count : geometry.attributes.position.count) / 3;
-            count.textContent = Math.round(tris).toLocaleString("en-US");
-        }
+        if(node.isMesh) count.textContent = formatCount(triangleCount(node.geometry));
 
         row.append(check, typeIcon(nodeType(node, depth)), name, count);
         if(node.isMesh){
-            row.addEventListener("click", function(event){
+            row.addEventListener("click", (event)=>{
                 if(event.target === check) return;
                 if(selected) selected.classList.remove("selected");
                 selected = row;
@@ -111,8 +107,7 @@ export function buildOutliner(object){
 // materials of one mesh (the model's own, even if a debug shading mode is active)
 function showMaterials(info, mesh){
     info.textContent = "";
-    const source = mesh.userData.originalMaterial || mesh.material;
-    [].concat(source).forEach(function(mat, i){
+    ownMaterials(mesh).forEach((mat, i)=>{
         const box = document.createElement("div");
         box.className = "material";
 
@@ -126,13 +121,14 @@ function showMaterials(info, mesh){
         if(mat.roughness !== undefined) lines.push(["Roughness", mat.roughness.toFixed(2)]);
         if(mat.metalness !== undefined) lines.push(["Metalness", mat.metalness.toFixed(2)]);
         if(mat.transparent || mat.opacity < 1) lines.push(["Opacity", mat.opacity.toFixed(2)]);
-        if(mat.side === 2) lines.push(["Sides", "Double"]);
-        MAP_SLOTS.forEach(function(slot){
-            const image = mat[slot] && mat[slot].image;
-            if(mat[slot]) lines.push([SLOT_LABELS[slot], image && image.width ? `${image.width} × ${image.height}` : "Yes"]);
-        });
+        if(mat.side === THREE.DoubleSide) lines.push(["Sides", "Double"]);
+        for(const [slot, label] of Object.entries(MAP_SLOTS)){
+            if(!mat[slot]) continue;
+            const image = mat[slot].image;
+            lines.push([label, image && image.width ? `${image.width} × ${image.height}` : "Yes"]);
+        }
 
-        lines.forEach(function([label, value]){
+        for(const [label, value] of lines){
             const row = document.createElement("div");
             row.className = "stat-row";
             const key = document.createElement("span");
@@ -141,7 +137,7 @@ function showMaterials(info, mesh){
             val.textContent = value;
             row.append(key, val);
             box.append(row);
-        });
+        }
         info.append(box);
     });
 }

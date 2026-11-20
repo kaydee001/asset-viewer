@@ -11,10 +11,20 @@ export function hdriUrl(name){
 
 const win = tauri.window.getCurrentWindow();
 
-// the native title bar follows the page's theme (body.dark, toggled in ui.js) and its <title>
+// the native title bar follows the page's theme (body.dark, toggled in ui.js) and its <title>. body's class
+// changes for many other reasons (loading, panels), so the window is only told when something it shows changed
+let shownTheme = null;
+let shownTitle = null;
 const sync = ()=>{
-    win.setTheme(document.body.classList.contains("dark") ? "dark" : "light").catch(console.error);
-    win.setTitle(document.title).catch(console.error);
+    const theme = document.body.classList.contains("dark") ? "dark" : "light";
+    if(theme !== shownTheme){
+        shownTheme = theme;
+        win.setTheme(theme).catch(console.error);
+    }
+    if(document.title !== shownTitle){
+        shownTitle = document.title;
+        win.setTitle(shownTitle).catch(console.error);
+    }
 };
 new MutationObserver(sync).observe(document.body, {attributes: true, attributeFilter: ["class"]});
 new MutationObserver(sync).observe(document.querySelector("title"), {childList: true, characterData: true, subtree: true});

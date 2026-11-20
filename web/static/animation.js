@@ -1,7 +1,8 @@
 // plays the clips that come with GLB / FBX files and drives the transport bar at the bottom of the viewport:
 // play / pause, time scrubber, clip picker, speed and loop
 import * as THREE from './vendor/three/build/three.module.js';
-import { invalidateBox } from './helpers.js';
+import { invalidateBox } from './overlays.js';
+import { setSwitch } from './util.js';
 
 const clock = new THREE.Clock();
 const select = document.getElementById("animation-select");
@@ -52,10 +53,8 @@ function playSelected(){
 function setControlsEnabled(enabled){
     [select, timeSlider, speedSelect, loopBtn, playBtn].forEach(el => { el.disabled = !enabled; });
 }
-setControlsEnabled(false);
-select.add(new Option("No animations", ""));
 
-// called by loader.js for every new model; disables the controls when there are no clips
+// called by loader.js for every new model (and below, for the empty state); disables the controls when there are no clips
 export function setAnimations(object, newClips){
     if(mixer) mixer.stopAllAction();
     mixer = null;
@@ -78,6 +77,7 @@ export function setAnimations(object, newClips){
     });
     playSelected();
 }
+setAnimations(null, []);
 
 select.addEventListener("change", () => { if(mixer) playSelected(); });
 
@@ -96,8 +96,7 @@ speedSelect.addEventListener("change", () => { if(mixer) mixer.timeScale = +spee
 
 loopBtn.addEventListener("click", () => {
     loop = !loop;
-    loopBtn.classList.toggle("active", loop);
-    loopBtn.setAttribute("aria-checked", loop);
+    setSwitch(loopBtn, loop);
     if(action){
         action.setLoop(loop ? THREE.LoopRepeat : THREE.LoopOnce, Infinity);
         // turning loop back on after the clip finished restarts it

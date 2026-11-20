@@ -6,18 +6,24 @@ import { RoomEnvironment } from './vendor/three/addons/environments/RoomEnvironm
 import { showToast } from './toast.js';
 import { hdriUrl } from './shell.js';
 
-// canvas fills the whole window
-const width = window.innerWidth;
-const height = window.innerHeight;
-
-// scene setup
 export const scene = new THREE.Scene();
-export const camera = new THREE.PerspectiveCamera(50, width/height, 0.1, 1000);
-// high-performance asks laptops with two GPUs for the dedicated one
-export const renderer = new THREE.WebGLRenderer({alpha: true, antialias: true, powerPreference: "high-performance"});
 
-// default camera setup
-camera.position.set(2.5, 2.5, 2.5);
+// the camera is a perspective camera in both modes. "orthographic" is the same camera with a 1 degree
+// field of view, moved far back: parallel lines stay parallel to well under a percent, and everything
+// that already uses this camera (orbit controls, framing, the view offset) keeps working unchanged
+export const PERSPECTIVE_FOV = 50;
+export const ORTHO_FOV = 1;
+// how much farther the camera has to be in orthographic mode to show the same size
+export const ORTHO_SCALE = Math.tan(THREE.MathUtils.degToRad(PERSPECTIVE_FOV) / 2) / Math.tan(THREE.MathUtils.degToRad(ORTHO_FOV) / 2);
+export const projection = {orthographic: false, scale: 1}; // scale is 1 or ORTHO_SCALE
+
+export const camera = new THREE.PerspectiveCamera(PERSPECTIVE_FOV, window.innerWidth / window.innerHeight, 0.1, 1000);
+// where the camera starts, and where "reset view" puts it back while no model is loaded
+export const HOME_POSITION = new THREE.Vector3(2.5, 2.5, 2.5);
+camera.position.copy(HOME_POSITION);
+
+// the canvas fills the whole window. high-performance asks laptops with two GPUs for the dedicated one
+export const renderer = new THREE.WebGLRenderer({alpha: true, antialias: true, powerPreference: "high-performance"});
 
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 0.7; // lower = darker overall
@@ -39,10 +45,9 @@ export function takeRenderRequest(){
     renderRequested = false;
     return requested;
 }
-renderer.setSize(width, height);
+renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-// fix reloading after window resizing
 window.addEventListener("resize", () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
@@ -50,21 +55,12 @@ window.addEventListener("resize", () => {
     requestRender();
 });
 
-// directional light. the hdri does most of the lighting, this adds a key light on top of it.
+// directional key light. the hdri does most of the lighting, this adds a key light on top of it.
 // it is aimed from the brightest part of the hdri (see prepareEnvironment / updateSun), so it agrees
 // with the way the hdri already lights the model
-export const light1 = new THREE.DirectionalLight(0xffffff, 0.5);
-light1.position.set(5, 10, 5);
-scene.add(light1);
-
-// the camera is a perspective camera in both modes. "orthographic" is the same camera with a 1 degree
-// field of view, moved far back: parallel lines stay parallel to well under a percent, and everything
-// that already uses this camera (orbit controls, framing, the view offset) keeps working unchanged
-export const PERSPECTIVE_FOV = 50;
-export const ORTHO_FOV = 1;
-// how much farther the camera has to be in orthographic mode to show the same size
-export const ORTHO_SCALE = Math.tan(THREE.MathUtils.degToRad(PERSPECTIVE_FOV) / 2) / Math.tan(THREE.MathUtils.degToRad(ORTHO_FOV) / 2);
-export const projection = {orthographic: false, scale: 1}; // scale is 1 or ORTHO_SCALE
+const keyLight = new THREE.DirectionalLight(0xffffff, 0.5);
+keyLight.position.set(5, 10, 5);
+scene.add(keyLight);
 
 // hdri / environment lighting, falls back to a built-in room if the file is missing
 const rgbeLoader = new RGBELoader();
@@ -77,11 +73,15 @@ const ENV_WIDTH = 1024;
 const halfToFloat = new Float32Array(65536);
 for(let i = 0; i < 65536; i++) halfToFloat[i] = THREE.DataUtils.fromHalfFloat(i);
 
+// where the key light sits without an hdri to aim it (the built-in room): above (5, 10, 5)
+const DEFAULT_SUN_ELEVATION = Math.atan2(10, Math.hypot(5, 5));
+const DEFAULT_SUN_AZIMUTH = Math.PI / 4;
+
 let envSource = null;   // {data, width, height} half float rgba of the current hdri
 let envTexture = null;  // the turned copy that scene.environment shows
-let sunElevation = Math.atan2(10, Math.hypot(5, 5)); // where the brightest light sits in the hdri (radians)
-let sunAzimuth = Math.PI/4;                          // (before turning)
-let envRotation = 0;                                 // radians, from the sun angle slider
+let sunElevation = DEFAULT_SUN_ELEVATION; // where the brightest light sits in the hdri (radians)
+let sunAzimuth = DEFAULT_SUN_AZIMUTH;     // (before turning)
+let envRotation = 0;                      // radians, from the sun angle slider
 let updatePending = false;
 
 // every hdri is scaled so its average brightness (over the sphere) is this value. hdris are captured at very
@@ -162,7 +162,7 @@ function updateSun(){
     const elevation = THREE.MathUtils.clamp(sunElevation, THREE.MathUtils.degToRad(30), THREE.MathUtils.degToRad(75));
     const azimuth = sunAzimuth + envRotation;
     const distance = 12;
-    light1.position.set(
+    keyLight.position.set(
         Math.cos(elevation) * Math.cos(azimuth) * distance,
         Math.sin(elevation) * distance,
         Math.cos(elevation) * Math.sin(azimuth) * distance
@@ -216,24 +216,31 @@ function useFallbackEnvironment(){
         envTexture = null;
     }
     envSource = null;
-    sunElevation = Math.atan2(10, Math.hypot(5, 5));
-    sunAzimuth = Math.PI/4;
+    sunElevation = DEFAULT_SUN_ELEVATION;
+    sunAzimuth = DEFAULT_SUN_AZIMUTH;
     scene.environment = fallbackEnvironment;
     updateSun();
     requestRender();
 }
 
 // swap the hdri used for lighting + reflections (url can be an hdriUrl() or a blob: url from an upload,
-// pass revoke = true for the latter so the blob is freed once it is read)
+// pass revoke = true for the latter so the blob is freed once it is read).
+// only the latest request counts: picking presets quickly, or the saved preset restored at startup while
+// the default is still loading, must not end with an older hdri arriving last and winning
+let environmentRequest = 0;
 export function setEnvironment(url, revoke = false){
-    rgbeLoader.load(url, function(texture){
-        prepareEnvironment(texture);
+    const request = ++environmentRequest;
+    rgbeLoader.load(url, (texture)=>{
+        if(revoke) URL.revokeObjectURL(url);
+        if(request === environmentRequest){
+            prepareEnvironment(texture);
+            applyEnvironment();
+        }
         texture.dispose();
-        applyEnvironment();
+    }, undefined, (error)=>{
         if(revoke) URL.revokeObjectURL(url);
-    }, undefined, function(error){
+        if(request !== environmentRequest) return;
         console.error(error);
-        if(revoke) URL.revokeObjectURL(url);
         if(!scene.environment) useFallbackEnvironment();
         showToast(revoke ? "Could not read that HDRI file" : "Could not load that HDRI, keeping the current lighting", {error: true});
     });
@@ -253,14 +260,14 @@ setEnvironment(hdriUrl(DEFAULT_HDRI));
 export const pixelRatioUniform = {value: 1};
 scene.onBeforeRender = (renderer)=>{ pixelRatioUniform.value = renderer.getPixelRatio(); };
 
-const size = 12;
-const divisions = 24;
+export const GRID_SIZE = 12; // units, also the length of the axes overlay (overlays.js)
+const GRID_DIVISIONS = 24;
 const gridMaterial = new THREE.ShaderMaterial({
     uniforms: {
         color: {value: new THREE.Color()},
         opacity: {value: 0.5},
-        cell: {value: size / divisions},
-        halfSize: {value: size / 2},
+        cell: {value: GRID_SIZE / GRID_DIVISIONS},
+        halfSize: {value: GRID_SIZE / 2},
         lineWidth: {value: 1},  // CSS pixels
         pixelRatio: pixelRatioUniform
     },
@@ -317,10 +324,10 @@ const gridMaterial = new THREE.ShaderMaterial({
     extensions: {derivatives: true}
 });
 // a little larger than the grid so the outer lines are not cut in half
-const gridPlane = new THREE.PlaneGeometry(size + 1, size + 1).rotateX(-Math.PI / 2);
-export const gridHelper = new THREE.Mesh(gridPlane, gridMaterial);
-gridHelper.position.y = -0.01;
-scene.add(gridHelper);
+const gridPlane = new THREE.PlaneGeometry(GRID_SIZE + 1, GRID_SIZE + 1).rotateX(-Math.PI / 2);
+export const grid = new THREE.Mesh(gridPlane, gridMaterial);
+grid.position.y = -0.01;
+scene.add(grid);
 
 // grey lines that read on either stage: lighter on the dark one, darker on the light one
 export function setGridTheme(dark){

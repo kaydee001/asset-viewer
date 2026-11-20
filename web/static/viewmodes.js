@@ -84,6 +84,11 @@ function wireGeometry(mesh){
 let mode = "shaded";     // remembered so a newly loaded model gets the active mode
 let wireframe = false;
 
+// the object's own materials as an array, also while a shading mode or the wireframe has swapped them out
+export function ownMaterials(object){
+    return [].concat(object.userData.originalMaterial || object.material || []);
+}
+
 // the model's own material is kept in userData so it can be restored and disposed later
 export function applyViewMode(root, newMode = mode, newWireframe = wireframe){
     mode = newMode;

@@ -7,7 +7,7 @@ export function showToast(message, {error = false, sticky = false} = {}){
     clearTimeout(hideTimer);
     toast.textContent = message;
     toast.classList.toggle("error", error);
-    toast.style.display = "block";
+    toast.hidden = false;
     document.body.classList.toggle("busy", sticky);
     if(!sticky){
         hideTimer = setTimeout(hideToast, error ? 6000 : 2500);
@@ -16,6 +16,6 @@ export function showToast(message, {error = false, sticky = false} = {}){
 
 export function hideToast(){
     clearTimeout(hideTimer);
-    toast.style.display = "none";
+    toast.hidden = true;
     document.body.classList.remove("busy");
 }

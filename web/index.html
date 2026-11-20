@@ -13,7 +13,7 @@
     <div id="progress"></div>
 
     <!-- shown while a file is dragged over the window -->
-    <div id="overlay" style="display: none;">
+    <div id="overlay" hidden>
         <p>Drop to open</p>
     </div>
 
@@ -48,7 +48,7 @@
             <svg class="ic-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
             <svg class="ic-moon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
         </button>
-        <input type="file" id="open-input" multiple style="display: none;">
+        <input type="file" id="open-input" multiple hidden>
     </div>
 
     <!-- frame rate, top right corner of the viewport, only while an animation plays (fps.js) -->
@@ -76,7 +76,7 @@
             <button id="ortho-btn" class="row" role="switch"><span class="row-label">Orthographic</span><kbd>P</kbd><span class="switch"><i></i></span></button>
             <button id="bottom-lock-btn" class="row active" role="switch"><span class="row-label">Lock below grid</span><span class="switch"><i></i></span></button>
             <!-- only shown for gltf files that contain cameras (ui.js) -->
-            <div id="camera-section" style="display: none;">
+            <div id="camera-section" hidden>
                 <select id="camera-select" aria-label="Camera"></select>
             </div>
         </div>
@@ -113,7 +113,7 @@
             </select>
             <div id="hdri-name"></div>
             <button id="upload-hdri-btn" class="text-btn">Open HDRI file</button>
-            <input type="file" id="hdri-upload" accept=".hdr" style="display: none;">
+            <input type="file" id="hdri-upload" accept=".hdr" hidden>
             <!-- turns the hdri and the key light together (scene.js) -->
             <label class="slider-row"><span>Light angle</span><input type="range" id="sun-range" min="0" max="360" value="0"></label>
             <label class="slider-row"><span>Exposure</span><input type="range" id="exposure-range" min="0.1" max="2" step="0.05" value="0.7"></label>
@@ -155,13 +155,14 @@
     <div id="hint" class="card">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
         <strong>Drop a model or a folder to open it</strong>
-        <span>glb &middot; gltf &middot; fbx &middot; obj &middot; stl &middot; ply &middot; 3mf</span>
+        <!-- the supported formats, filled in from loader.js by dragdrop.js -->
+        <span id="hint-formats"></span>
     </div>
 
-    <div id="toast" role="status" aria-live="polite" style="display: none;"></div>
+    <div id="toast" role="status" aria-live="polite" hidden></div>
 
     <!-- keyboard shortcut list, rows are generated from the shortcut map in shortcuts.js -->
-    <div id="help" style="display: none;">
+    <div id="help" hidden>
         <div id="help-card" class="card" role="dialog" aria-modal="true" aria-label="Keyboard shortcuts">
             <div class="help-title">Keyboard shortcuts</div>
             <div id="help-list"></div>

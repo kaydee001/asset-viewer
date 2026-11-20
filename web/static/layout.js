@@ -7,17 +7,15 @@ const rightPanel = document.getElementById("scene-panel"); // scene settings
 
 const shown = (panel) => getComputedStyle(panel).display !== "none";
 
-// shifts the projection centre sideways (setViewOffset), the canvas itself keeps filling the window
-// edges of the free viewport between the docks, in css pixels (the gizmo in helpers.js sits in its top right)
-export let viewportLeft = 0;
+// right edge of the free viewport between the docks, in css pixels (the gizmo in overlays.js sits in its top right corner)
 export let viewportRight = 0;
 
+// shifts the projection centre sideways (setViewOffset), the canvas itself keeps filling the window
 export function updateViewOffset(){
     const width = window.innerWidth;
     const height = window.innerHeight;
     const freeLeft = shown(leftPanel) ? leftPanel.getBoundingClientRect().right : 0;
     const freeRight = shown(rightPanel) ? rightPanel.getBoundingClientRect().left : width;
-    viewportLeft = freeLeft;
     viewportRight = freeRight;
     const shift = (freeLeft + freeRight) / 2 - width / 2;
     // in a very narrow window the panels cover the middle anyway, leave the view alone
