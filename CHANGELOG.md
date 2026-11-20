@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.0.0 (not yet released)
+## 2.0.0 (2026-11-20)
 
 ### Added
 - STL, PLY and 3MF support, KTX2 (basis) compressed textures in GLB/GLTF
@@ -40,7 +40,6 @@
 - Screenshot controls are hidden for now (the code is kept)
 - Every lighting preset is evened out to the same average brightness, so switching presets no longer needs an exposure change; an exposure saved for the old presets is reset once. Double click a slider to reset it
 
-
 ### Fixed
 - A saved lighting preset could lose to the default one at startup when the default finished loading last; only the latest HDRI request is applied now
 - The camera list shows "Orbit (default)" again after Reset view or the orthographic switch, which leave a glTF camera's view
@@ -61,8 +60,6 @@
 - `ui.js` split into `ui.js`, `shortcuts.js`, `dragdrop.js` and `settings.js`, stats moved to `stats.js`
 - Vertex count no longer merges every mesh just to count; the redundant "faces" row is gone
 - Phong (OBJ/MTL) materials keep normal maps, opacity, sidedness and vertex colors, and shininess maps to roughness
-- `pyinstaller` moved to `requirements-dev.txt`
-
 - The model is centred in the free space between the side panels, not in the whole window
 - The bounding box is drawn with visible edges (and works for the default cube); axes are now ground lines plus a corner gizmo instead of a 1 unit helper hidden inside the model
 - Auto rotate stops immediately when switched off, and panning can no longer carry the camera under the grid
