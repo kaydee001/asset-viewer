@@ -1,16 +1,16 @@
 # To do
 
-## Before the release (2026-11-20)
-- Outliner type icons (`outliner.js`, `style.css`): in the code and shown working in a debug build with a test glTF. They didn't show in the installed copy, which was built before them. Rebuild, reinstall and check with the scene that has lights and areas
-- No default cube when opening from Explorer (`main.rs` sets `__AV_OPENING__`, `loader.js`): also needs the reinstall to show
+2.0.0 is released (2026-11-20). What's left, roughly in order.
+
+## Check by hand
+- A Draco and a KTX2 compressed glTF. CC0 test files from the Khronos glTF Sample Assets: the `glTF-Draco` folders of BoomBox, Lantern, WaterBottle, Corset or Avocado, and the `glTF-KTX-BasisU` folder of FlightHelmet
+- An STL opened from Explorer with "Open with"
+- Once a Draco model loads, `web/static/vendor/three/addons/libs/draco/gltf/draco_decoder.js` (512 KB) can go: it is the asm.js fallback for browsers without WebAssembly, which WebView2 always has
+
+## Desktop app
+- Screenshot (hidden for now): WebView2 saves it straight to Downloads. Add a save dialog (the `on_download` hook), then bring back the button, the S shortcut and the Screenshot panel section
+- Installer size: 24 MB, 20 of it the six 2k HDRIs. Ship 1k ones, or download the extra presets on first use, if size matters
 - Maybe: a "Set as default app" step. Windows doesn't let an app make itself the default, but the installer can open the Default apps page for it (needs a RegisteredApplications / Capabilities entry in the NSIS installer)
-
-## Finish the move to Tauri
-The Tauri shell (`src-tauri/`) runs the page and serves the startup files and HDRIs. Saved settings start fresh once (accepted). Still to do:
-
-- Check by hand: a Draco / KTX2 compressed GLB, and an STL from Explorer. (Checked: drag and drop of files and folders, "Open with" for GLB / GLTF / FBX / OBJ; the installer leaves the user's default app for each type alone)
-- Installer is 24 MB, 20 of it the six 2k HDRIs: ship 1k ones or download the extra presets on first use if size matters
-- Screenshot (hidden for now): WebView2 saves it straight to Downloads; the Python shell asked where. Add a save dialog (the `on_download` hook) before the button comes back
 - Later: heavy work in Rust (folder scanning, parsing very large files, thumbnails, batch / headless renders)
 
 ## Upgrade three.js
