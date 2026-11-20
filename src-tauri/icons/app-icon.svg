@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2a2a2e"/>
+      <stop offset="1" stop-color="#121214"/>
+    </linearGradient>
+    <linearGradient id="top" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffd38a"/>
+      <stop offset="1" stop-color="#f5b456"/>
+    </linearGradient>
+    <linearGradient id="left" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f0a63a"/>
+      <stop offset="1" stop-color="#d98a1f"/>
+    </linearGradient>
+    <linearGradient id="right" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#b56d12"/>
+      <stop offset="1" stop-color="#8a500b"/>
+    </linearGradient>
+    <radialGradient id="gridFade" cx="512" cy="660" r="430" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff" stop-opacity="1"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
+    <mask id="gridMask"><rect width="1024" height="1024" fill="url(#gridFade)"/></mask>
+    <clipPath id="tileClip"><rect x="64" y="64" width="896" height="896" rx="200"/></clipPath>
+    <radialGradient id="shadow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#000" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- graphite tile, like the app's docks -->
+  <rect x="64" y="64" width="896" height="896" rx="200" fill="url(#tile)"/>
+  <rect x="65" y="65" width="894" height="894" rx="199" fill="none" stroke="#ffffff" stroke-opacity="0.08" stroke-width="2"/>
+
+  <!-- the viewport grid the model sits on: isometric lines, fading out from the cube -->
+  <g clip-path="url(#tileClip)" mask="url(#gridMask)" stroke="#9a9aa2" stroke-opacity="0.5" stroke-width="4" stroke-linecap="round">
+    <path d="M512.0 -654.0 L2762.0 642.0 M512.0 -654.0 L-1738.0 642.0 M387.0 -582.0 L2637.0 714.0 M637.0 -582.0 L-1613.0 714.0 M262.0 -510.0 L2512.0 786.0 M762.0 -510.0 L-1488.0 786.0 M137.0 -438.0 L2387.0 858.0 M887.0 -438.0 L-1363.0 858.0 M12.0 -366.0 L2262.0 930.0 M1012.0 -366.0 L-1238.0 930.0 M-113.0 -294.0 L2137.0 1002.0 M1137.0 -294.0 L-1113.0 1002.0 M-238.0 -222.0 L2012.0 1074.0 M1262.0 -222.0 L-988.0 1074.0 M-363.0 -150.0 L1887.0 1146.0 M1387.0 -150.0 L-863.0 1146.0 M-488.0 -78.0 L1762.0 1218.0 M1512.0 -78.0 L-738.0 1218.0 M-613.0 -6.0 L1637.0 1290.0 M1637.0 -6.0 L-613.0 1290.0 M-738.0 66.0 L1512.0 1362.0 M1762.0 66.0 L-488.0 1362.0 M-863.0 138.0 L1387.0 1434.0 M1887.0 138.0 L-363.0 1434.0 M-988.0 210.0 L1262.0 1506.0 M2012.0 210.0 L-238.0 1506.0 M-1113.0 282.0 L1137.0 1578.0 M2137.0 282.0 L-113.0 1578.0 M-1238.0 354.0 L1012.0 1650.0 M2262.0 354.0 L12.0 1650.0 M-1363.0 426.0 L887.0 1722.0 M2387.0 426.0 L137.0 1722.0 M-1488.0 498.0 L762.0 1794.0 M2512.0 498.0 L262.0 1794.0 M-1613.0 570.0 L637.0 1866.0 M2637.0 570.0 L387.0 1866.0 M-1738.0 642.0 L512.0 1938.0 M2762.0 642.0 L512.0 1938.0"/>
+  </g>
+
+  <!-- soft contact shadow -->
+  <ellipse cx="512" cy="680" rx="330" ry="150" fill="url(#shadow)"/>
+
+  <!-- amber cube, the app's one accent colour -->
+  <g stroke-linejoin="round">
+    <path d="M512 210 L762 354 L512 498 L262 354 Z" fill="url(#top)"/>
+    <path d="M262 354 L512 498 L512 786 L262 642 Z" fill="url(#left)"/>
+    <path d="M762 354 L512 498 L512 786 L762 642 Z" fill="url(#right)"/>
+    <!-- light catching the front edges -->
+    <path d="M262 354 L512 498 L762 354" fill="none" stroke="#fff3dc" stroke-opacity="0.75" stroke-width="8"/>
+    <path d="M512 498 L512 786" fill="none" stroke="#fff3dc" stroke-opacity="0.25" stroke-width="6"/>
+  </g>
+</svg>

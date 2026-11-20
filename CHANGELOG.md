@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 2.0.0 (not yet released)
 
 ### Added
 - STL, PLY and 3MF support, KTX2 (basis) compressed textures in GLB/GLTF
@@ -18,6 +18,8 @@
 - New desktop shell built on Tauri 2 (`src-tauri/`), replacing the PyQt5 + Flask one: the page runs in the system's WebView2 (current Chromium) instead of QtWebEngine's Chromium 83, the exe is about 4 MB with the page embedded, an NSIS installer adds the app to "Open with" for the model types, and the title bar follows the light/dark theme without polling. Python is no longer needed to run or build from source
 
 ### Changed
+- New app icon: an amber cube on the viewport grid, in the app's own colours (the SVG source is `src-tauri/icons/app-icon.svg`)
+- README rewritten for people installing the app: a current screenshot, the supported formats and the main controls. The developer documentation (setup, tests, how it works, project structure) moved to `CONTRIBUTING.md`
 - The page moved from `templates/` and `static/` to `web/`
 - Saved settings start fresh once: the Tauri build keeps them apart from the old Python build's
 - New interface: the stats and parts list and the settings are docked side panels instead of floating glass cards; the model sits on a neutral grey stage so its colours read true
@@ -40,6 +42,14 @@
 
 
 ### Fixed
+- A saved lighting preset could lose to the default one at startup when the default finished loading last; only the latest HDRI request is applied now
+- The camera list shows "Orbit (default)" again after Reset view or the orthographic switch, which leave a glTF camera's view
+- Switches tell screen readers their state from the start (aria-checked), not only after the first click
+- Opening a glTF from Explorer also brings along its `.ktx2` textures from the same folder
+- The Draco decoder's workers are freed when a glTF fails to load, not only when it loads
+- A file passed on the command line that cannot be read shows a message instead of loading the server's error text as a model
+- A saved setting that is not a current option (for example a removed lighting preset with an unusual name) is ignored; before, it could throw while the settings were restored and keep the viewer from starting
+- The same HDRI file can be opened twice in a row
 - The grid and wireframe no longer brighten while the camera moves and dim when it stops: both are drawn by shaders with a line width in screen pixels, so they look the same in the 1x frame drawn while moving and the supersampled still frame, and their lines are antialiased
 - Wireframe is one flat colour whatever the shading mode (light grey on the dark theme, dark grey on the light one); the shading mode comes back when it is turned off
 - No white flash when the Tauri window opens: it stays hidden until the page has drawn its first frame

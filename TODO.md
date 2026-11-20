@@ -11,13 +11,12 @@ The Tauri shell (`src-tauri/`) runs the page and serves the startup files and HD
 - Check by hand: a Draco / KTX2 compressed GLB, and an STL from Explorer. (Checked: drag and drop of files and folders, "Open with" for GLB / GLTF / FBX / OBJ; the installer leaves the user's default app for each type alone)
 - Installer is 24 MB, 20 of it the six 2k HDRIs: ship 1k ones or download the extra presets on first use if size matters
 - Screenshot (hidden for now): WebView2 saves it straight to Downloads; the Python shell asked where. Add a save dialog (the `on_download` hook) before the button comes back
-- The Python shell is gone, so the CSS can use flex `gap`, `:is()` and `:has()` (Chromium 83 limits no longer apply); check each change by eye
 - Later: heavy work in Rust (folder scanning, parsing very large files, thumbnails, batch / headless renders)
 
 ## Upgrade three.js
 The vendored build is r150.
 
-- Move to the current release: `outputEncoding` / `sRGBEncoding` become `outputColorSpace` / `SRGBColorSpace`, and color management is on by default (recheck the overlay colours in `helpers.js` and the HDRI brightness)
+- Move to the current release: `outputEncoding` / `sRGBEncoding` become `outputColorSpace` / `SRGBColorSpace`, and color management is on by default (recheck the overlay colours in `overlays.js` and the HDRI brightness)
 - Environment maps can be rotated natively (`scene.environmentRotation`), which can replace the manual HDRI shifting in `scene.js`
 - Try the WebGPU renderer (WebView2 is a current Chromium, so it is available)
 - Re-vendor the loaders and decoders (Draco, Basis / KTX2, meshopt) at the same version
