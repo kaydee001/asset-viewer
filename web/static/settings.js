@@ -1,4 +1,4 @@
-// settings are remembered between launches (localStorage; main.py keeps the port fixed and the Tauri shell keeps its origin, so it survives restarts).
+// settings are remembered between launches (localStorage; the Tauri shell keeps its origin, so it survives restarts).
 // to remember a new setting: add it in saveSettings() and restore it in the block below.
 import { setEnvironment, gridHelper, projection, DEFAULT_HDRI } from './scene.js';
 import { controls } from './controls.js';

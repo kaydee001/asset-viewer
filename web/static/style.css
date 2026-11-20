@@ -1,7 +1,6 @@
 /* lookdev bench: neutral graphite surfaces so the model's colours read true, docked side panels
    (parts and model info on the left, scene settings on the right),
-   one amber accent (selection, play, seek), axis colours only where a dimension is shown.
-   note: QtWebEngine is Chromium 83, so no flex gap, :has(), :is(), :where(), inset or aspect-ratio */
+   one amber accent (selection, play, seek), axis colours only where a dimension is shown. */
 
 :root{
     --left-w: 264px;  /* model panel */

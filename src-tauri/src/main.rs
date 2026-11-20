@@ -1,4 +1,4 @@
-//! Desktop entry point (Tauri). Replaces main.py + server.py: the page in web/ is embedded in the exe and
+//! Desktop entry point (Tauri): the page in web/ is embedded in the exe and
 //! shown in the system WebView2. All the actual viewer logic lives in web/static/*.js.
 //!
 //! usage: asset-viewer [model.glb] [--debug]

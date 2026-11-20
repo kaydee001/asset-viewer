@@ -1,5 +1,4 @@
 //! The model given on the command line (or by Explorer's "Open with") and the files that go with it.
-//! Same rules as `startup_files` in main.py.
 
 use std::path::{Path, PathBuf};
 

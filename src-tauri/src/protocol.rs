@@ -1,4 +1,4 @@
-//! The "av" protocol: what server.py serves under the Python shell, minus the page itself (that is embedded).
+//! The "av" protocol: the files the page can't have embedded (the page itself is in the exe).
 //! WebView2 reaches it at http://av.localhost (web/static/shell.js).
 //!
 //! - /startup-files        JSON list of the startup files: [{"name": "car.glb", "url": "/startup-file/0"}]

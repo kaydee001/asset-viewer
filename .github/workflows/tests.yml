@@ -3,17 +3,6 @@ name: tests
 on: [push, pull_request]
 
 jobs:
-  python:
-    # the old PyQt5 + Flask shell. windows, because importing PyQt5 WebEngine on linux runners needs extra system libraries
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - run: pip install -r requirements.txt -r requirements-dev.txt
-      - run: python -m pytest
-
   tauri:
     # the Tauri shell (src-tauri/); windows runners come with Rust, the MSVC build tools and WebView2
     runs-on: windows-latest
