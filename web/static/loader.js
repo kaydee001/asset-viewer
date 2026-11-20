@@ -44,6 +44,24 @@ modelRoot.add(defaultCube);
 setBoundingTarget(defaultCube);
 currentObject = defaultCube;
 
+// a model opened from Explorer is already on its way (main.rs), so the cube and the drop hint stay hidden
+// instead of flashing up while it loads
+if(window.__AV_OPENING__){
+    defaultCube.visible = false;
+    document.body.classList.add("opening");
+}
+
+// the startup model is in, or failed to load: back to the normal empty state if nothing was loaded
+export function endOpening(){
+    if(!document.body.classList.contains("opening")) return;
+    document.body.classList.remove("opening");
+    if(!modelLoaded){
+        defaultCube.visible = true;
+        setBoundingTarget(defaultCube);
+        requestRender();
+    }
+}
+
 // put the camera at a 3/4 angle far enough away that the whole object is in view.
 // box: the object's exact bounds if the caller already has them (measuring walks every vertex)
 export function frameCamera(object, box = new THREE.Box3().setFromObject(object, true)){

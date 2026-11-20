@@ -245,3 +245,6 @@ backup
 
 #tauri / node
 node_modules/
+
+#local test models
+/models/

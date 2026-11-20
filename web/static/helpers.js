@@ -272,6 +272,9 @@ export function invalidateBox(){
 export function updateHelpers(animating = false){
     if(animating) boxStale = true; // also while the box is hidden, so it is right when it is turned on
     if(!bboxHelper.visible || !target) return;
+    // nothing to box while the default cube is hidden (loader.js)
+    for(const bar of bars) bar.visible = target.visible;
+    if(!target.visible) return;
     if(!boxStale && !animating) return;
     fitBoundingBox(target);
     boxStale = false;

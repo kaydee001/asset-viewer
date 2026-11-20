@@ -398,9 +398,25 @@ body.ui-hidden #overlay{
     box-shadow: inset 2px 0 0 var(--accent);
 }
 
+.part-icon{
+    flex: none;
+    width: 14px;
+    height: 14px;
+    margin-left: 8px;
+    fill: none;
+    stroke: var(--text-3);
+    stroke-width: 1.75;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.part.selected .part-icon{
+    stroke: var(--text-2);
+}
+
 .part-name{
     flex: 1;
-    margin: 0 8px;
+    margin: 0 8px 0 6px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -1075,7 +1091,7 @@ body.has-model #transport{
     line-height: 16px;
 }
 
-body.has-model #hint{
+body.has-model #hint, body.opening #hint{
     display: none;
 }
 

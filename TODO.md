@@ -1,5 +1,11 @@
 # To do
 
+## Before the release (2026-11-20)
+- Outliner type icons (`outliner.js`, `style.css`): in the code and shown working in a debug build with a test glTF. They didn't show in the installed copy, which was built before them. Rebuild, reinstall and check with the scene that has lights and areas
+- No default cube when opening from Explorer (`main.rs` sets `__AV_OPENING__`, `loader.js`): also needs the reinstall to show
+- Maybe: a "Set as default app" step. Windows doesn't let an app make itself the default, but the installer can open the Default apps page for it (needs a RegisteredApplications / Capabilities entry in the NSIS installer)
+- Commit the above on `tauri`
+
 ## Finish the move to Tauri
 The Tauri shell (`src-tauri/`) runs the page and serves the startup files and HDRIs. Saved settings start fresh once (accepted). Still to do:
 
@@ -18,3 +24,6 @@ The vendored build is r150.
 - Try the WebGPU renderer once the shell runs on a current Chromium
 - Re-vendor the loaders and decoders (Draco, Basis / KTX2, meshopt) at the same version
 - The wireframe material (`viewmodes.js`) patches MeshBasicMaterial's shader at `#include <output_fragment>`, and the grid (`scene.js`) uses `#include <encodings_fragment>`. Both chunks were renamed in r154 (`opaque_fragment`, `colorspace_fragment`)
+
+## Later / maybe
+- USDZ support: only if real users bring USDZ files (Apple AR, Reality Composer, e-commerce). three.js's `USDZLoader` is experimental, and the r150 version reads only text USDA, while most real files are binary USDC. Do it after the three.js upgrade, with a clear "unsupported USD feature" message and `.usdz` in the installer's "Open with" types. Pipeline USD (`.usd` / `.usda` / `.usdc` with layers, references and variants) is out of scope for a three.js loader

@@ -16,9 +16,11 @@ fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
     // inspect the page with the dev tools, and expose window.viewer in its console (viewer.js)
     let debug = args.iter().any(|a| a == "--debug");
+    let files = startup::startup_files(&args);
+    let opening = !files.is_empty();
 
     tauri::Builder::default()
-        .manage(StartupFiles(startup::startup_files(&args)))
+        .manage(StartupFiles(files))
         // files can be large, so they are read off the main thread
         .register_asynchronous_uri_scheme_protocol("av", |ctx, request, responder| {
             let app = ctx.app_handle().clone();
@@ -43,6 +45,11 @@ fn main() {
                 .disable_drag_drop_handler();
             if debug {
                 window = window.initialization_script("window.__AV_DEBUG__ = true;");
+            }
+            // a model was opened from Explorer: the page leaves out the default cube and the drop hint, which
+            // would otherwise flash up while the model loads (loader.js)
+            if opening {
+                window = window.initialization_script("window.__AV_OPENING__ = true;");
             }
             let window = window.build()?;
             if debug {

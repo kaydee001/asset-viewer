@@ -1,7 +1,7 @@
 // getting files into the viewer: drag and drop (files or folders), the Open button, and the
 // file passed on the command line. one asset per session: .bin, .mtl and texture files in the
 // same drop are used as sidecars of the model.
-import { loadModel } from './loader.js';
+import { loadModel, endOpening } from './loader.js';
 import { showToast, hideToast } from './toast.js';
 import { setWireframe, updateCameraSelect } from './ui.js';
 import { BACKEND } from './shell.js';
@@ -35,7 +35,7 @@ function handleFiles(files){
         showToast(`No supported model found (${MODEL_EXTENSIONS.join(", ")})`, {error: true});
         return;
     }
-    openModel(models[0], files, models.length - 1);
+    return openModel(models[0], files, models.length - 1);
 }
 
 // read dropped files, including everything inside dropped folders
@@ -102,5 +102,5 @@ fetch(`${BACKEND}/startup-files`).then(r => r.json()).then(async function(items)
         const blob = await (await fetch(BACKEND + item.url)).blob();
         return new File([blob], item.name);
     }));
-    handleFiles(files);
-}).catch(error => console.error(error));
+    await handleFiles(files);
+}).catch(error => console.error(error)).finally(endOpening);
