@@ -205,12 +205,16 @@ export async function loadModel(file, allFiles){
     }
     const revokeAll = () => blobUrls.forEach(u => URL.revokeObjectURL(u));
 
-    // redirect any url the loaders ask for (e.g. "textures/wood.png") to the matching dropped file
+    // redirect any url the loaders ask for (e.g. "textures/wood.png") to the matching dropped file.
+    // the loaders resolve a sidecar against the model's own url, which is a blob url here, so a .gltf's
+    // "scene.bin" arrives as "blob:http://tauri.localhost/scene.bin": only our own blob urls (and data: urls)
+    // pass through untouched, everything else is matched by its file name
+    const ownUrls = new Set(blobUrls);
     const manager = new THREE.LoadingManager();
     // textures can finish after the model is on screen (fbx, obj), draw them as they arrive
     manager.onProgress = requestRender;
     manager.setURLModifier((url)=>{
-        if(url.startsWith("blob:") || url.startsWith("data:")) return url;
+        if(url.startsWith("data:") || ownUrls.has(url)) return url;
         return urls.get(fileKey(decodeURIComponent(url.split("?")[0]))) || url;
     });
 

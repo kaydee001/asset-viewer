@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.0.1 (not yet released)
+
+### Fixed
+- A `.gltf` with its data and textures in separate files (`.bin`, `.png`, ...) failed to load, whether dropped or opened with "Open with": the loader asked for those files under the model's own `blob:` address and never found them. FBX files with external textures were affected the same way
+
 ## 2.0.0 (2026-11-20)
 
 ### Added
