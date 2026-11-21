@@ -10,7 +10,9 @@
 </p>
 
 <p align="center">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT license"></a>
+  <a href="https://github.com/kaydee001/asset-viewer/releases/latest"><img src="https://img.shields.io/github/v/release/kaydee001/asset-viewer?label=release&color=f0a63a" alt="Latest release"></a>
+  <a href="https://github.com/kaydee001/asset-viewer/actions/workflows/tests.yml"><img src="https://img.shields.io/github/actions/workflow/status/kaydee001/asset-viewer/tests.yml?branch=main&label=tests" alt="Tests"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/kaydee001/asset-viewer?color=blue" alt="MIT license"></a>
   <img src="https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-lightgrey" alt="Windows 10 and 11">
 </p>
 
@@ -44,7 +46,7 @@ Textures can be PNG, JPEG, WebP or BMP, and KTX2 in glTF files. Models that use 
 
 ## Install
 
-Download the installer from the [Releases page](https://github.com/kaydee001/asset-viewer/releases) and run it. It works on Windows 10 and 11, and installs Microsoft's WebView2 runtime if it's missing.
+Download `Asset.Viewer_<version>_x64-setup.exe` from the [latest release](https://github.com/kaydee001/asset-viewer/releases/latest) and run it. It works on Windows 10 and 11, and installs Microsoft's WebView2 runtime if it's missing. To update, run the new installer over the old one; your settings are kept.
 
 The installer adds Asset Viewer to "Open with" for every supported file type, without changing your default apps.
 
