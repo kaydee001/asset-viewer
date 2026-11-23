@@ -46,9 +46,14 @@ Textures can be PNG, JPEG, WebP or BMP, and KTX2 in glTF files. Models that use 
 
 ## Install
 
-Download `Asset.Viewer_<version>_x64-setup.exe` from the [latest release](https://github.com/kaydee001/asset-viewer/releases/latest) and run it. It works on Windows 10 and 11, and installs Microsoft's WebView2 runtime if it's missing. To update, run the new installer over the old one; your settings are kept.
+Get one of these from the [latest release](https://github.com/kaydee001/asset-viewer/releases/latest). Both work on Windows 10 and 11.
 
-The installer adds Asset Viewer to "Open with" for every supported file type, without changing your default apps.
+| Download | What you get |
+| --- | --- |
+| `Asset.Viewer_<version>_x64-setup.exe` | **Installer** (24 MB). Adds Asset Viewer to the Start menu and to Explorer's "Open with" for every supported file type, without changing your default apps. Installs Microsoft's WebView2 runtime if it's missing. To update, run the new installer over the old one |
+| `Asset.Viewer_<version>_x64-portable.exe` | **Portable** (38 MB). One file, nothing to install: put it anywhere and double-click it. No "Open with" entry, but you can drag files onto it or the window |
+
+The portable exe needs WebView2, which comes with Windows 11 and almost every Windows 10 machine. If it won't start, install the [WebView2 runtime](https://developer.microsoft.com/microsoft-edge/webview2/) or use the installer. Both versions keep your settings in the same place, so switching between them keeps your setup.
 
 ## Usage
 
@@ -75,7 +80,8 @@ Built with [three.js](https://threejs.org) inside a [Tauri 2](https://tauri.app)
 ```bash
 npm install
 npm run dev      # run from source
-npm run build    # build the exe and the installer
+npm run build             # build the exe and the installer
+npm run build:portable    # build the single-file portable exe
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the HDRI files, tests, how the app works and the project structure.

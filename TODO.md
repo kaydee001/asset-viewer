@@ -9,7 +9,7 @@
 
 ## Desktop app
 - Screenshot (hidden for now): WebView2 saves it straight to Downloads. Add a save dialog (the `on_download` hook), then bring back the button, the S shortcut and the Screenshot panel section
-- Installer size: 24 MB, 20 of it the six 2k HDRIs. Ship 1k ones, or download the extra presets on first use, if size matters
+- Download size: the installer is 24 MB, 20 of it the six 2k HDRIs, and the portable exe 38 MB (its HDRIs are not compressed). Ship 1k ones, or download the extra presets on first use, if size matters
 - Maybe: a "Set as default app" step. Windows doesn't let an app make itself the default, but the installer can open the Default apps page for it (needs a RegisteredApplications / Capabilities entry in the NSIS installer)
 - Later: heavy work in Rust (folder scanning, parsing very large files, thumbnails, batch / headless renders)
 

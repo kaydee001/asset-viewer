@@ -4,6 +4,10 @@ version = "2.0.1"
 description = "A lightweight local 3D model viewer"
 edition = "2021"
 
+[features]
+# the single-file portable exe: the HDRI maps are built into it (build.rs), not read from an hdri folder
+portable = []
+
 [build-dependencies]
 tauri-build = { version = "2.7", features = [] }
 

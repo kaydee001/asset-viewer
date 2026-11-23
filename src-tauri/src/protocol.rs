@@ -3,12 +3,17 @@
 //!
 //! - /startup-files        JSON list of the startup files: [{"name": "car.glb", "url": "/startup-file/0"}]
 //! - /startup-file/<index> one of them, by index, so the page never sends a path of its own
-//! - /hdri/<name>          an HDRI map from the hdri folder bundled next to the exe; 404 if it is missing,
-//!   and the page falls back to its built-in room lighting
+//! - /hdri/<name>          an HDRI map from the hdri folder bundled next to the exe (or, in the portable
+//!   exe, built into it); 404 if it is missing, and the page falls back to its built-in room lighting
 
 use percent_encoding::percent_decode_str;
 use std::path::{Path, PathBuf};
 use tauri::http::{header, Response, StatusCode};
+
+#[cfg(feature = "portable")]
+mod embedded {
+    include!(concat!(env!("OUT_DIR"), "/hdris.rs"));
+}
 
 fn reply(status: StatusCode, content_type: &str, body: Vec<u8>) -> Response<Vec<u8>> {
     Response::builder()
@@ -55,6 +60,10 @@ pub fn respond(path: &str, startup_files: &[PathBuf], hdri_dir: &Path) -> Respon
         // a plain file name only: no escaping the hdri folder
         if name.is_empty() || name.contains(['/', '\\', ':']) || name.starts_with('.') {
             return not_found();
+        }
+        #[cfg(feature = "portable")]
+        if let Some((_, bytes)) = embedded::HDRIS.iter().find(|(n, _)| *n == name) {
+            return reply(StatusCode::OK, "application/octet-stream", bytes.to_vec());
         }
         return file(&hdri_dir.join(name.as_ref()));
     }
@@ -123,5 +132,13 @@ mod tests {
         if root().join("hdri").join(name).is_file() {
             assert_eq!(get(&format!("/hdri/{name}"), &[]).status(), StatusCode::OK);
         }
+    }
+
+    #[cfg(feature = "portable")]
+    #[test]
+    fn portable_exe_serves_hdris_without_the_folder() {
+        let (name, _) = embedded::HDRIS[0];
+        let response = respond(&format!("/hdri/{name}"), &[], Path::new("no-such-folder"));
+        assert_eq!(response.status(), StatusCode::OK);
     }
 }

@@ -40,6 +40,12 @@ npm run build
 
 This produces `src-tauri/target/release/asset-viewer.exe`, with the page embedded in it, and an installer in `src-tauri/target/release/bundle/nsis/`. The installer puts the `hdri/` folder next to the exe and registers the file associations.
 
+```bash
+npm run build:portable
+```
+
+This builds the portable exe, with the `portable` cargo feature: `build.rs` builds every `.hdr` in `hdri/` into the exe, so it needs no folder next to it (and the HDRI files must be there to build it). It is copied to `dist/Asset.Viewer_<version>_x64-portable.exe`, ready to attach to the release. Both builds write `src-tauri/target/release/asset-viewer.exe`, so run `npm run build` again afterwards if you need the installer's exe.
+
 To change the app icon, edit `src-tauri/icons/app-icon.svg`, then run `npx tauri icon src-tauri/icons/app-icon.svg -o <folder>` and copy over the files listed under `bundle.icon` in `tauri.conf.json`, plus `icon.png`.
 
 ## How it works
@@ -66,6 +72,7 @@ src-tauri/
   src/main.rs           window, --debug, registers the av protocol
   src/startup.rs        finds the model given on the command line and its sidecar files (with tests)
   src/protocol.rs       the av protocol: /hdri/*, /startup-files (with tests)
+  build.rs              for the portable build, lists the HDRIs to build into the exe
   tauri.conf.json       window, bundle, file associations, bundled hdri/ folder
   capabilities/         what the page may ask of the window (theme, title, show)
   icons/                app-icon.svg is the source; the PNGs and icon.ico are generated from it

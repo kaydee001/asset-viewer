@@ -4,6 +4,7 @@
   "scripts": {
     "dev": "tauri dev",
     "build": "tauri build",
+    "build:portable": "tauri build --no-bundle --features portable && node scripts/portable.mjs",
     "tauri": "tauri"
   },
   "devDependencies": {

@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+### Added
+- A portable exe next to the installer: one file with the HDRI presets built in, nothing to install (`npm run build:portable`)
+
 ## 2.0.1 (2026-11-21)
 
 ### Fixed
