@@ -1,6 +1,6 @@
 # To do
 
-2.0.1 is released (2026-11-21): the fix for `.gltf` files with separate `.bin` and texture files. What's left, roughly in order.
+2.0.2 is released (2026-11-23): the portable exe next to the installer. What's left, roughly in order.
 
 ## Check by hand
 - A Draco and a KTX2 compressed glTF. CC0 test files from the Khronos glTF Sample Assets: the `glTF-Draco` folders of BoomBox, Lantern, WaterBottle, Corset or Avocado, and the `glTF-KTX-BasisU` folder of FlightHelmet
